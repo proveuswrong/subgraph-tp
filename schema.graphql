@@ -1,6 +1,20 @@
-type ExampleEntity @entity {
+type Claim @entity {
   id: ID!
-  count: BigInt!
-  claimAddress: BigInt! # uint256
-  newTotal: BigInt! # uint256
+  claimStorageAddress: BigInt! # uint256
+  bounty: BigInt! # uint256
+  status: Status
+}
+
+type ClaimStorage @entity {
+  id: ID! # Storage address
+  claimID: String!
+}
+
+enum Status {
+  Absent
+  Debunked
+  Withdrawn
+  TimelockStarted
+  Challenged
+  Live
 }
