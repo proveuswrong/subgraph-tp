@@ -1,0 +1,6 @@
+type ExampleEntity @entity {
+  id: ID!
+  count: BigInt!
+  claimAddress: BigInt! # uint256
+  newTotal: BigInt! # uint256
+}

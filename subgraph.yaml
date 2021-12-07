@@ -1,0 +1,59 @@
+specVersion: 0.0.1
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: ProveMeWrong
+    network: rinkeby
+    source:
+      address: "0x622dFdCAFdd47a8f03480E0eBa6978d97E314cb0"
+      abi: ProveMeWrong
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - BalanceUpdate
+        - Challenge
+        - Contribution
+        - Debunked
+        - Dispute
+        - Evidence
+        - MetaEvidence
+        - NewClaim
+        - Ruling
+        - RulingFunded
+        - TimelockStarted
+        - Withdrawal
+        - Withdrew
+      abis:
+        - name: ProveMeWrong
+          file: ./abis/ProveMeWrong.json
+      eventHandlers:
+        - event: BalanceUpdate(uint256,uint256)
+          handler: handleBalanceUpdate
+        - event: Challenge(indexed uint256,address,uint256)
+          handler: handleChallenge
+        - event: Contribution(indexed uint256,indexed uint256,uint8,indexed address,uint256)
+          handler: handleContribution
+        - event: Debunked(uint256)
+          handler: handleDebunked
+        - event: Dispute(indexed address,indexed uint256,uint256,uint256)
+          handler: handleDispute
+        - event: Evidence(indexed address,indexed uint256,indexed address,string)
+          handler: handleEvidence
+        - event: MetaEvidence(indexed uint256,string)
+          handler: handleMetaEvidence
+        - event: NewClaim(indexed string,uint256)
+          handler: handleNewClaim
+        - event: Ruling(indexed address,indexed uint256,uint256)
+          handler: handleRuling
+        - event: RulingFunded(indexed uint256,indexed uint256,indexed uint8)
+          handler: handleRulingFunded
+        - event: TimelockStarted(uint256)
+          handler: handleTimelockStarted
+        - event: Withdrawal(indexed uint256,indexed uint256,uint8,indexed address,uint256)
+          handler: handleWithdrawal
+        - event: Withdrew(uint256)
+          handler: handleWithdrew
+      file: ./src/mapping.ts
