@@ -1,4 +1,4 @@
-import { BigInt, log } from "@graphprotocol/graph-ts";
+import { ethereum, BigInt, log } from "@graphprotocol/graph-ts";
 import {
   ProveMeWrong,
   BalanceUpdate,
@@ -17,148 +17,115 @@ import {
 } from "../generated/ProveMeWrong/ProveMeWrong";
 import { Claim, ClaimStorage } from "../generated/schema";
 
-export function handleBalanceUpdate(event: BalanceUpdate): void {
-  let claimStorage = ClaimStorage.load(event.params.claimAddress.toHex());
+function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
+  let claimStorage = ClaimStorage.load(claimStorageAddress.toString());
+  if (!claimStorage) {
+    log.error("There is no claim at storage address {}. However, this is impossible. There must be a bug within the subgraph.", [
+      claimStorageAddress.toString()
+    ]);
+    throw new InternalError("There is no claim at given storage address.");
+  }
 
-  if (!claimStorage) claimStorage = new ClaimStorage(event.params.claimAddress.toHex());
+  let claimEntityID = claimStorage.claimEntityID;
+  let claim = Claim.load(claimEntityID);
 
-  let claimID = claimStorage.claimID;
+  if (!claim) {
+    log.error("There is no claim entity with id {}. However, this is impossible. There must be a bug within the subgraph.", [claimEntityID]);
+    throw new InternalError("There is no claim entity with given id.");
+  }
 
-  let claim = Claim.load(claimID);
+  return claim;
+}
 
-  if (!claim) claim = new Claim(claimID);
+export function handleBlock(block: ethereum.Block): void {
+  // How to update score of each Claim, on each block (or every nth block)?
+}
 
-  // Entity fields can be set based on event parameters
-  claim.bounty = event.params.newTotal;
+export function handleNewClaim(event: NewClaim): void {
+  let claimStorage = new ClaimStorage(event.params.claimAddress.toString());
+  claimStorage.claimEntityID = event.params.claimAddress.toString() + "-" + event.block.number.toString();
+  claimStorage.save();
+
+  let claim = new Claim(claimStorage.claimEntityID);
+  claim.claimID = event.params.claimID.toString();
+  claim.claimStorageAddress = event.params.claimAddress;
   claim.status = "Live";
+  claim.withdrawalPermittedAt = BigInt.fromI32(0);
+  claim.lastBalanceUpdate = event.block.number;
+  claim.lastCalculatedScore = BigInt.fromI32(0);
 
-  // Entities can be written to the store with `.save()`
   claim.save();
+}
 
-  // Note: If a handler doesn't require existing field values, it is faster
-  // _not_ to load the entity from the store. Instead, create it fresh with
-  // `new Entity(...)`, set the fields that should be updated and save the
-  // entity back to the store. Fields that were not set or unset remain
-  // unchanged, allowing for partial updates to be applied.
+export function handleBalanceUpdate(event: BalanceUpdate): void {
+  let claim = getClaimEntityInstance(event.params.claimAddress);
 
-  // It is also possible to access smart contracts from mappings. For
-  // example, the contract that has emitted the event can be connected to
-  // with:
-  //
-  let contract = ProveMeWrong.bind(event.address);
-  //
-  // The following functions can then be called on this contract to access
-  // state variables and other data:
-  //
-  // - contract.ARBITRATOR(...)
-  // - contract.ARBITRATOR_EXTRA_DATA(...)
-  // - contract.CLAIM_WITHDRAWAL_TIMELOCK(...)
-  // - contract.LOSER_APPEAL_PERIOD_MULTIPLIER(...)
-  // - contract.LOSER_STAKE_MULTIPLIER(...)
-  // - contract.MULTIPLIER_DENOMINATOR(...)
-  // - contract.NUMBER_OF_LEAST_SIGNIFICANT_BITS_TO_IGNORE(...)
-  // - contract.NUMBER_OF_RULING_OPTIONS(...)
-  // - contract.PMW_VERSION(...)
-  // - contract.WINNER_STAKE_MULTIPLIER(...)
-  // - contract.appealFee(...)
-  // - contract.challengeFee(...)
-  // - contract.claimStorage(...)
-  // - contract.findVacantStorageSlot(...)
-  // - contract.getTotalWithdrawableAmount(...)
-  // - contract.withdrawFeesAndRewards(...)
+  let newScore = event.block.number
+    .minus(claim.lastBalanceUpdate)
+    .times(claim.bounty)
+    .plus(claim.lastCalculatedScore);
+
+  claim.lastCalculatedScore = newScore;
+  claim.lastBalanceUpdate = event.block.number;
+  claim.status = "Live";
+  claim.bounty = event.params.newTotal;
+  claim.save();
 }
 
 export function handleChallenge(event: Challenge): void {
-  let claimStorage = ClaimStorage.load(event.params.claimAddress.toHex());
+  let claim = getClaimEntityInstance(event.params.claimAddress);
 
-  if (!claimStorage) claimStorage = new ClaimStorage(event.params.claimAddress.toHex());
-
-  let claimID = claimStorage.claimID;
-
-  let claim = Claim.load(claimID);
-
-  if (!claim) claim = new Claim(claimID);
-
-  // Entity fields can be set based on event parameters
   claim.status = "Challenged";
-
-  // Entities can be written to the store with `.save()`
+  claim.challenger = event.transaction.from;
   claim.save();
 }
-
-export function handleContribution(event: Contribution): void {}
 
 export function handleDebunked(event: Debunked): void {
-  let claimStorage = ClaimStorage.load(event.params.claimAddress.toHex());
+  let claim = getClaimEntityInstance(event.params.claimAddress);
 
-  if (!claimStorage) claimStorage = new ClaimStorage(event.params.claimAddress.toHex());
-
-  let claimID = claimStorage.claimID;
-
-  let claim = Claim.load(claimID);
-
-  if (!claim) claim = new Claim(claimID);
-
-  // Entity fields can be set based on event parameters
   claim.status = "Debunked";
-
-  // Entities can be written to the store with `.save()`
-  claim.save();
-}
-
-export function handleDispute(event: Dispute): void {}
-
-export function handleEvidence(event: Evidence): void {}
-
-export function handleMetaEvidence(event: MetaEvidence): void {}
-
-export function handleNewClaim(event: NewClaim): void {
-  let claimStorage = new ClaimStorage(event.params.claimAddress.toHex());
-  claimStorage.claimID = event.params.claimID.toHex();
-
-  claimStorage.save();
-
-  let claim = new Claim(claimStorage.claimID);
-  claim.claimStorageAddress = event.params.claimAddress;
-  claim.status = "Live";
+  claim.bounty = BigInt.fromI32(0);
+  claim.lastBalanceUpdate = event.block.number;
+  claim.lastCalculatedScore = BigInt.fromI32(0);
 
   claim.save();
 }
-
-export function handleRuling(event: Ruling): void {}
-
-export function handleRulingFunded(event: RulingFunded): void {}
 
 export function handleTimelockStarted(event: TimelockStarted): void {
-  let claimStorage = ClaimStorage.load(event.params.claimAddress.toHex());
+  let claim = getClaimEntityInstance(event.params.claimAddress);
 
-  if (!claimStorage) claimStorage = new ClaimStorage(event.params.claimAddress.toHex());
+  let contract = ProveMeWrong.bind(event.address);
 
-  let claimID = claimStorage.claimID;
-
-  let claim = Claim.load(claimID);
-
-  if (!claim) claim = new Claim(claimID);
+  const CLAIM_WITHDRAWAL_TIMELOCK = contract.CLAIM_WITHDRAWAL_TIMELOCK();
+  let withdrawalPermittedAt = event.block.timestamp + CLAIM_WITHDRAWAL_TIMELOCK;
 
   claim.status = "TimelockStarted";
+  claim.withdrawalPermittedAt = withdrawalPermittedAt;
+
+  let newScore = event.block.number
+    .minus(claim.lastBalanceUpdate)
+    .times(claim.bounty)
+    .plus(claim.lastCalculatedScore);
+  claim.lastCalculatedScore = newScore;
+  claim.lastBalanceUpdate = event.block.number;
+
+  claim.save();
+}
+
+export function handleWithdrew(event: Withdrew): void {
+  let claim = getClaimEntityInstance(event.params.claimAddress);
+
+  claim.status = "Withdrawn";
+  claim.bounty = BigInt.fromI32(0);
+  claim.lastBalanceUpdate = event.block.number;
 
   claim.save();
 }
 
 export function handleWithdrawal(event: Withdrawal): void {}
-
-export function handleWithdrew(event: Withdrew): void {
-  let claimStorage = ClaimStorage.load(event.params.claimAddress.toHex());
-
-  if (!claimStorage) claimStorage = new ClaimStorage(event.params.claimAddress.toHex());
-
-  let claimID = claimStorage.claimID;
-
-  let claim = Claim.load(claimID);
-
-  if (!claim) claim = new Claim(claimID);
-
-  claim.status = "Withdrawn";
-
-  claim.save();
-}
+export function handleContribution(event: Contribution): void {}
+export function handleDispute(event: Dispute): void {}
+export function handleEvidence(event: Evidence): void {}
+export function handleMetaEvidence(event: MetaEvidence): void {}
+export function handleRuling(event: Ruling): void {}
+export function handleRulingFunded(event: RulingFunded): void {}

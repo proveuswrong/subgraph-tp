@@ -1,13 +1,18 @@
 type Claim @entity {
-  id: ID!
-  claimStorageAddress: BigInt! # uint256
+  id: ID! # Storage address + blocknumber
+  claimStorageAddress: BigInt! #
+  claimID: String! # Actual IPFS content id of the claim.
   bounty: BigInt! # uint256
   status: Status
+  challenger: Bytes
+  withdrawalPermittedAt: BigInt
+  lastCalculatedScore: BigInt!
+  lastBalanceUpdate: BigInt!
 }
 
 type ClaimStorage @entity {
-  id: ID! # Storage address
-  claimID: String!
+  id: ID! # Claim storage address
+  claimEntityID: String! # primary key of Claim entity
 }
 
 enum Status {

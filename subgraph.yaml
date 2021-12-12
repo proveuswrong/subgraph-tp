@@ -6,9 +6,9 @@ dataSources:
     name: ProveMeWrong
     network: rinkeby
     source:
-      address: "0x622dFdCAFdd47a8f03480E0eBa6978d97E314cb0"
+      address: "0x183e0c13295Ab3dF2d93F088E971453b5e5CB0E1"
       abi: ProveMeWrong
-      startBlock: 9762712 
+      startBlock: 9790826
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.5
@@ -45,7 +45,7 @@ dataSources:
           handler: handleEvidence
         - event: MetaEvidence(indexed uint256,string)
           handler: handleMetaEvidence
-        - event: NewClaim(indexed string,uint256)
+        - event: NewClaim(string,uint256)
           handler: handleNewClaim
         - event: Ruling(indexed address,indexed uint256,uint256)
           handler: handleRuling
