@@ -57,4 +57,12 @@ dataSources:
           handler: handleWithdrawal
         - event: Withdrew(uint256)
           handler: handleWithdrew
+      # callHandlers:
+      #   - function: withdrawFeesAndRewards(uint256,address,uint256,uint8)
+      #     handler: withdrawFeesAndRewards
+      #   - function: rule(uint256,uint256)
+      #     handler: rule
+      #   - function: submitEvidence(uint256,string)
+      #     handler: submitEvidence
+
       file: ./src/mapping.ts

@@ -15,7 +15,7 @@ import {
   Withdrawal,
   Withdrew
 } from "../generated/ProveMeWrong/ProveMeWrong";
-import { Claim, ClaimStorage } from "../generated/schema";
+import { Claim, ClaimStorage, EvidenceEntity, ContributionEntity, MetaEvidenceEntity } from "../generated/schema";
 
 function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
   let claimStorage = ClaimStorage.load(claimStorageAddress.toString());
@@ -77,6 +77,7 @@ export function handleChallenge(event: Challenge): void {
 
   claim.status = "Challenged";
   claim.challenger = event.transaction.from;
+  claim.disputeID = event.params.disputeID;
   claim.save();
 }
 
@@ -121,11 +122,39 @@ export function handleWithdrew(event: Withdrew): void {
 
   claim.save();
 }
+export function handleEvidence(event: Evidence): void {
+  let evidenceEntity = new EvidenceEntity(event.params._evidenceGroupID.toString() + "-" + event.params._evidence.toString());
+
+  evidenceEntity.evidenceGroupID = event.params._evidenceGroupID;
+  evidenceEntity.uri = event.params._evidence;
+  evidenceEntity.sender = event.transaction.from;
+  evidenceEntity.blockNumber = event.block.number;
+
+  evidenceEntity.save();
+}
+export function handleContribution(event: Contribution): void {
+  let claim = getClaimEntityInstance(event.params.claimStorageAddress);
+
+  let disputeID = claim.disputeID | BigInt.fromI32(0);
+
+  const contributionEntityID = disputeID.toString() + "-" + event.params.contributor.toString() + "-" + event.params.ruling.toString();
+
+  let contributionEntity = ContributionEntity.load(contributionEntityID);
+  if (!contributionEntity) contributionEntity = new ContributionEntity(contributionEntityID);
+
+  contributionEntity.amount = contributionEntity.amount.plus(event.params.amount);
+  contributionEntity.contributor = contributionEntity.contributor || event.params.contributor;
+  contributionEntity.ruling = contributionEntity.ruling || event.params.ruling;
+  contributionEntity.disputeID = contributionEntity.disputeID || disputeID;
+
+  contributionEntity.save();
+}
+export function handleMetaEvidence(event: MetaEvidence): void {
+  const metaEvidence = new MetaEvidenceEntity(event.block.number.toString());
+  metaEvidence.uri = event.params._evidence;
+}
 
 export function handleWithdrawal(event: Withdrawal): void {}
-export function handleContribution(event: Contribution): void {}
 export function handleDispute(event: Dispute): void {}
-export function handleEvidence(event: Evidence): void {}
-export function handleMetaEvidence(event: MetaEvidence): void {}
 export function handleRuling(event: Ruling): void {}
 export function handleRulingFunded(event: RulingFunded): void {}

@@ -8,11 +8,33 @@ type Claim @entity {
   withdrawalPermittedAt: BigInt
   lastCalculatedScore: BigInt!
   lastBalanceUpdate: BigInt!
+  disputeID: BigInt
 }
 
 type ClaimStorage @entity {
   id: ID! # Claim storage address
   claimEntityID: String! # primary key of Claim entity
+}
+
+type EvidenceEntity @entity {
+  id: ID! # DisputeID + uri
+  evidenceGroupID: BigInt! # We use disputeID as evidence group id.
+  uri: String!
+  sender: Bytes!
+  blockNumber: BigInt!
+}
+
+type ContributionEntity @entity {
+  id: ID!
+  ruling: Int!
+  contributor: Bytes!
+  disputeID: BigInt!
+  amount: BigInt!
+}
+
+type MetaEvidenceEntity @entity {
+  id: ID! # Singleton
+  uri: String!
 }
 
 enum Status {
