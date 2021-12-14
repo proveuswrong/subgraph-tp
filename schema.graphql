@@ -30,7 +30,7 @@ type ContributionEntity @entity {
 
 type DisputeEntity @entity {
   id: ID! # DisputeID
-  ruled: Boolean!
+  ruled: Boolean
   ruling: BigInt!
 }
 
