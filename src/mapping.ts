@@ -15,7 +15,7 @@ import {
   Withdrawal,
   Withdrew
 } from "../generated/ProveMeWrong/ProveMeWrong";
-import { Claim, ClaimStorage, EvidenceEntity, ContributionEntity, MetaEvidenceEntity } from "../generated/schema";
+import { Claim, ClaimStorage, EvidenceEntity, ContributionEntity, MetaEvidenceEntity, DisputeEntity, CrowdfundingStatus } from "../generated/schema";
 
 function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
   let claimStorage = ClaimStorage.load(claimStorageAddress.toString());
@@ -38,7 +38,9 @@ function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
 }
 
 export function handleBlock(block: ethereum.Block): void {
-  // How to update score of each Claim, on each block (or every nth block)?
+  /* How to update score of each Claim, on each block (or every nth block)? It would be convenient to do this, but not badly needed.
+   * Currently, we are storing past scores when a bounty increase happens. So the formula to calculate the score for the front-end is to evaluate this expression: `lastCalculatedScore + (currentBlock - lastBalanceUpdate) * bounty`.
+   */
 }
 
 export function handleNewClaim(event: NewClaim): void {
@@ -48,7 +50,6 @@ export function handleNewClaim(event: NewClaim): void {
 
   let claim = new Claim(claimStorage.claimEntityID);
   claim.claimID = event.params.claimID.toString();
-  claim.claimStorageAddress = event.params.claimAddress;
   claim.status = "Live";
   claim.withdrawalPermittedAt = BigInt.fromI32(0);
   claim.lastBalanceUpdate = event.block.number;
@@ -123,9 +124,8 @@ export function handleWithdrew(event: Withdrew): void {
   claim.save();
 }
 export function handleEvidence(event: Evidence): void {
-  let evidenceEntity = new EvidenceEntity(event.params._evidenceGroupID.toString() + "-" + event.params._evidence.toString());
+  let evidenceEntity = new EvidenceEntity(event.params._evidenceGroupID.toString());
 
-  evidenceEntity.evidenceGroupID = event.params._evidenceGroupID;
   evidenceEntity.uri = event.params._evidence;
   evidenceEntity.sender = event.transaction.from;
   evidenceEntity.blockNumber = event.block.number;
@@ -137,24 +137,67 @@ export function handleContribution(event: Contribution): void {
 
   let disputeID = claim.disputeID | BigInt.fromI32(0);
 
-  const contributionEntityID = disputeID.toString() + "-" + event.params.contributor.toString() + "-" + event.params.ruling.toString();
+  const contributionEntityID =
+    disputeID.toString() + "-" + event.params.round.toString() + "-" + event.params.contributor.toString() + "-" + event.params.ruling.toString();
 
   let contributionEntity = ContributionEntity.load(contributionEntityID);
   if (!contributionEntity) contributionEntity = new ContributionEntity(contributionEntityID);
 
   contributionEntity.amount = contributionEntity.amount.plus(event.params.amount);
-  contributionEntity.contributor = contributionEntity.contributor || event.params.contributor;
-  contributionEntity.ruling = contributionEntity.ruling || event.params.ruling;
-  contributionEntity.disputeID = contributionEntity.disputeID || disputeID;
 
   contributionEntity.save();
 }
+
 export function handleMetaEvidence(event: MetaEvidence): void {
-  const metaEvidence = new MetaEvidenceEntity(event.block.number.toString());
-  metaEvidence.uri = event.params._evidence;
+  const metaEvidenceEntity = new MetaEvidenceEntity(event.block.number.toString());
+  metaEvidenceEntity.uri = event.params._evidence;
+
+  metaEvidenceEntity.save();
 }
 
-export function handleWithdrawal(event: Withdrawal): void {}
-export function handleDispute(event: Dispute): void {}
-export function handleRuling(event: Ruling): void {}
-export function handleRulingFunded(event: RulingFunded): void {}
+export function handleWithdrawal(event: Withdrawal): void {
+  let claim = getClaimEntityInstance(event.params.claimStorageAddress);
+
+  let disputeID = claim.disputeID | BigInt.fromI32(0);
+
+  const contributionEntityID =
+    disputeID.toString() + "-" + event.params.round.toString() + "-" + event.params.contributor.toString() + "-" + event.params.ruling.toString();
+
+  let contributionEntity = ContributionEntity.load(contributionEntityID);
+  if (!contributionEntity) {
+    log.error("There is no contribution entity with id {}. However, this is impossible. There must be a bug within the subgraph.", [contributionEntityID]);
+    return;
+  }
+
+  contributionEntity.withdrew = true;
+
+  contributionEntity.save();
+}
+
+export function handleDispute(event: Dispute): void {
+  const disputeEntity = new DisputeEntity(event.params._disputeID.toString());
+  disputeEntity.save();
+}
+export function handleRuling(event: Ruling): void {
+  const disputeEntity = DisputeEntity.load(event.params._disputeID.toString());
+
+  if (!disputeEntity) {
+    log.error("There is no dispute with id {}. However, this is impossible. There must be a bug within the subgraph.", [event.params._disputeID.toString()]);
+    return;
+  }
+
+  disputeEntity.ruled = true;
+  disputeEntity.ruling = event.params._ruling;
+  disputeEntity.save();
+}
+
+export function handleRulingFunded(event: RulingFunded): void {
+  let claim = getClaimEntityInstance(event.params.claimStorageAddress);
+  let disputeID = claim.disputeID | BigInt.fromI32(0);
+
+  const crowdfundingStatus = new CrowdfundingStatus(disputeID.toString() + "-" + event.params.round.toString() + "-" + event.params.ruling.toString());
+
+  crowdfundingStatus.fullyFunded = true;
+
+  crowdfundingStatus.save();
+}

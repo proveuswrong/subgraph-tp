@@ -1,6 +1,5 @@
 type Claim @entity {
   id: ID! # Storage address + blocknumber
-  claimStorageAddress: BigInt! #
   claimID: String! # Actual IPFS content id of the claim.
   bounty: BigInt! # uint256
   status: Status
@@ -17,24 +16,32 @@ type ClaimStorage @entity {
 }
 
 type EvidenceEntity @entity {
-  id: ID! # DisputeID + uri
-  evidenceGroupID: BigInt! # We use disputeID as evidence group id.
+  id: ID! # Evidence group id
   uri: String!
   sender: Bytes!
   blockNumber: BigInt!
 }
 
 type ContributionEntity @entity {
-  id: ID!
-  ruling: Int!
-  contributor: Bytes!
-  disputeID: BigInt!
+  id: ID! # DisputeID-round-contributor-ruling
   amount: BigInt!
+  withdrew: Boolean!
+}
+
+type DisputeEntity @entity {
+  id: ID! # DisputeID
+  ruled: Boolean!
+  ruling: BigInt!
 }
 
 type MetaEvidenceEntity @entity {
-  id: ID! # Singleton
+  id: ID! # 0
   uri: String!
+}
+
+type CrowdfundingStatus @entity {
+  id: ID! # disputeID-round-ruling
+  fullyFunded: Boolean!
 }
 
 enum Status {
