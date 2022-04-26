@@ -37,12 +37,6 @@ function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
   return claim;
 }
 
-export function handleBlock(block: ethereum.Block): void {
-  /* How to update score of each Claim, on each block (or every nth block)? It would be convenient to do this, but not badly needed.
-   * Currently, we are storing past scores when a bounty increase happens. So the formula to calculate the score for the front-end is to evaluate this expression: `lastCalculatedScore + (currentBlock - lastBalanceUpdate) * bounty`.
-   */
-}
-
 export function handleNewClaim(event: NewClaim): void {
   let claimStorage = new ClaimStorage(event.params.claimAddress.toString());
   claimStorage.claimEntityID = event.params.claimAddress.toString() + "-" + event.block.number.toString();
@@ -54,6 +48,12 @@ export function handleNewClaim(event: NewClaim): void {
   claim.withdrawalPermittedAt = BigInt.fromI32(0);
   claim.lastBalanceUpdate = event.block.number;
   claim.lastCalculatedScore = BigInt.fromI32(0);
+
+  let contract = ProveMeWrong.bind(event.address);
+  const ARBITRATOR = contract.ARBITRATOR();
+  const ARBITRATOR_EXTRA_DATA = contract.ARBITRATOR_EXTRA_DATA();
+  claim.arbitrator = ARBITRATOR;
+  claim.arbitratorExtraData = ARBITRATOR_EXTRA_DATA;
 
   claim.save();
 }

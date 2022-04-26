@@ -8,6 +8,8 @@ type Claim @entity {
   lastCalculatedScore: BigInt!
   lastBalanceUpdate: BigInt!
   disputeID: BigInt
+  arbitrator: Bytes
+  arbitratorExtraData: Bytes
 }
 
 type ClaimStorage @entity {
@@ -43,6 +45,8 @@ type CrowdfundingStatus @entity {
   id: ID! # disputeID-round-ruling
   fullyFunded: Boolean!
 }
+
+
 
 enum Status {
   Absent
