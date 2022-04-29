@@ -83,6 +83,19 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "claimAddress",
+        "type": "uint256"
+      }
+    ],
+    "name": "ClaimWithdrawn",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": true,
         "internalType": "uint256",
         "name": "claimStorageAddress",
@@ -221,6 +234,12 @@
       },
       {
         "indexed": false,
+        "internalType": "uint8",
+        "name": "category",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
         "internalType": "uint256",
         "name": "claimAddress",
         "type": "uint256"
@@ -330,19 +349,6 @@
     "type": "event"
   },
   {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "claimAddress",
-        "type": "uint256"
-      }
-    ],
-    "name": "Withdrew",
-    "type": "event"
-  },
-  {
     "inputs": [],
     "name": "ARBITRATOR",
     "outputs": [
@@ -350,19 +356,6 @@
         "internalType": "contract IArbitrator",
         "name": "",
         "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "ARBITRATOR_EXTRA_DATA",
-    "outputs": [
-      {
-        "internalType": "bytes",
-        "name": "",
-        "type": "bytes"
       }
     ],
     "stateMutability": "view",
@@ -473,6 +466,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "admin",
+    "outputs": [
+      {
+        "internalType": "address payable",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -492,6 +498,45 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "buyAndBurn",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "categoryCounter",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "categoryToArbitratorExtraData",
+    "outputs": [
+      {
+        "internalType": "bytes",
+        "name": "",
+        "type": "bytes"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint80",
@@ -505,16 +550,48 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "uint80",
+        "name": "_claimStorageAddress",
+        "type": "uint80"
+      }
+    ],
     "name": "challengeFee",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "arbitrationFee",
+        "name": "",
         "type": "uint256"
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "challengeTaxRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address payable",
+        "name": "_newAdmin",
+        "type": "address"
+      }
+    ],
+    "name": "changeAdmin",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -538,9 +615,14 @@
         "type": "uint32"
       },
       {
-        "internalType": "uint64",
+        "internalType": "uint56",
         "name": "bountyAmount",
-        "type": "uint64"
+        "type": "uint56"
+      },
+      {
+        "internalType": "uint8",
+        "name": "category",
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",
@@ -639,6 +721,11 @@
         "type": "string"
       },
       {
+        "internalType": "uint8",
+        "name": "_category",
+        "type": "uint8"
+      },
+      {
         "internalType": "uint80",
         "name": "_searchPointer",
         "type": "uint80"
@@ -660,6 +747,24 @@
     "name": "initiateWithdrawal",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_metaevidenceIpfsUri",
+        "type": "string"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_arbitratorExtraData",
+        "type": "bytes"
+      }
+    ],
+    "name": "newCategory",
+    "outputs": [],
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -712,6 +817,32 @@
       }
     ],
     "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "treasuryBalance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_newChallengeTaxRate",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateChallengeTaxRate",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

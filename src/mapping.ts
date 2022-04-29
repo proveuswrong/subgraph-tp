@@ -13,7 +13,7 @@ import {
   RulingFunded,
   TimelockStarted,
   Withdrawal,
-  Withdrew
+  ClaimWithdrawn
 } from "../generated/ProveMeWrong/ProveMeWrong";
 import { Claim, ClaimStorage, EvidenceEntity, ContributionEntity, MetaEvidenceEntity, DisputeEntity, CrowdfundingStatus } from "../generated/schema";
 
@@ -44,6 +44,7 @@ export function handleNewClaim(event: NewClaim): void {
 
   let claim = new Claim(claimStorage.claimEntityID);
   claim.claimID = event.params.claimID.toString();
+  claim.category = event.params.category;
   claim.status = "Live";
   claim.withdrawalPermittedAt = BigInt.fromI32(0);
   claim.lastBalanceUpdate = event.block.number;
@@ -51,7 +52,7 @@ export function handleNewClaim(event: NewClaim): void {
 
   let contract = ProveMeWrong.bind(event.address);
   const ARBITRATOR = contract.ARBITRATOR();
-  const ARBITRATOR_EXTRA_DATA = contract.ARBITRATOR_EXTRA_DATA();
+  const ARBITRATOR_EXTRA_DATA = contract.categoryToArbitratorExtraData(BigInt.fromI32(0));
   claim.arbitrator = ARBITRATOR;
   claim.arbitratorExtraData = ARBITRATOR_EXTRA_DATA;
 
@@ -114,7 +115,7 @@ export function handleTimelockStarted(event: TimelockStarted): void {
   claim.save();
 }
 
-export function handleWithdrew(event: Withdrew): void {
+export function handleClaimWithdrawal(event: ClaimWithdrawn): void {
   let claim = getClaimEntityInstance(event.params.claimAddress);
 
   claim.status = "Withdrawn";
