@@ -44,6 +44,7 @@ export function handleNewClaim(event: NewClaim): void {
 
   let claim = new Claim(claimStorage.claimEntityID);
   claim.claimID = event.params.claimID.toString();
+  claim.owner = event.transaction.from;
   claim.category = event.params.category;
   claim.status = "Live";
   claim.withdrawalPermittedAt = BigInt.fromI32(0);
@@ -150,7 +151,7 @@ export function handleContribution(event: Contribution): void {
 }
 
 export function handleMetaEvidence(event: MetaEvidence): void {
-  const metaEvidenceEntity = new MetaEvidenceEntity(event.block.number.toString());
+  const metaEvidenceEntity = new MetaEvidenceEntity(event.params._metaEvidenceID.toString());
   metaEvidenceEntity.uri = event.params._evidence;
 
   metaEvidenceEntity.save();

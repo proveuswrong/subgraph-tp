@@ -6,7 +6,7 @@ dataSources:
     name: ProveMeWrong
     network: rinkeby
     source:
-      address: "0x5678057C9a36697986A1003d49B73EBE6A0E9c03"
+      address: "0x1a97Ffaa4c1a2416bA28D3e91AF3F5Ae5ccB8406"
       abi: ProveMeWrong
       startBlock: 9790826
     mapping:
