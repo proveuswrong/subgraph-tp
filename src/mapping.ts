@@ -49,6 +49,8 @@ export function handleNewClaim(event: NewClaim): void {
   claim.status = "Live";
   claim.withdrawalPermittedAt = BigInt.fromI32(0);
   claim.lastBalanceUpdate = event.block.number;
+  claim.createdAtBlock = event.block.number;
+  claim.createdAtTimestamp = event.block.timestamp;
   claim.lastCalculatedScore = BigInt.fromI32(0);
 
   let contract = ProveMeWrong.bind(event.address);

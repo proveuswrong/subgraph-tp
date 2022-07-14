@@ -8,6 +8,8 @@ type Claim @entity {
   challenger: Bytes
   withdrawalPermittedAt: BigInt
   lastCalculatedScore: BigInt!
+  createdAtBlock: BigInt!
+  createdAtTimestamp: BigInt!
   lastBalanceUpdate: BigInt!
   disputeID: BigInt
   arbitrator: Bytes
