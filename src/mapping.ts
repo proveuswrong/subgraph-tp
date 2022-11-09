@@ -15,7 +15,8 @@ import {
   Withdrawal,
   ClaimWithdrawn
 } from "../generated/ProveMeWrong/ProveMeWrong";
-import { Claim, ClaimStorage, EvidenceEntity, ContributionEntity, MetaEvidenceEntity, DisputeEntity, CrowdfundingStatus } from "../generated/schema";
+
+import { Claim, ClaimStorage, EvidenceEntity, ContributionEntity, MetaEvidenceEntity, DisputeEntity, CrowdfundingStatus  } from "../generated/schema";
 
 function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
   let claimStorage = ClaimStorage.load(claimStorageAddress.toString());
@@ -84,6 +85,12 @@ export function handleChallenge(event: Challenge): void {
   claim.challenger = event.transaction.from;
   claim.disputeID = event.params.disputeID;
   claim.save();
+
+  let dispute = new DisputeEntity(event.params.disputeID.toString()) as DisputeEntity;
+
+  dispute.claim = claim.id;
+  dispute.save();
+
 }
 
 export function handleDebunked(event: Debunked): void {
@@ -179,8 +186,8 @@ export function handleWithdrawal(event: Withdrawal): void {
 }
 
 export function handleDispute(event: Dispute): void {
-  const disputeEntity = new DisputeEntity(event.params._disputeID.toString());
-  disputeEntity.save();
+  // const disputeEntity = new DisputeEntity(event.params._disputeID.toString());
+  // disputeEntity.save();
 }
 export function handleRuling(event: Ruling): void {
   const disputeEntity = DisputeEntity.load(event.params._disputeID.toString());
@@ -190,9 +197,20 @@ export function handleRuling(event: Ruling): void {
     return;
   }
 
+  let claim = getClaimEntityInstance(BigInt.fromString(disputeEntity.claim.split('-')[0]));
+
   disputeEntity.ruled = true;
   disputeEntity.ruling = event.params._ruling;
   disputeEntity.save();
+
+  if(event.params._ruling .equals(BigInt.fromI32(2))){
+    claim.status = "Debunked";
+  }
+  else{
+    claim.status = "Live";
+  }
+
+  claim.save();
 }
 
 export function handleRulingFunded(event: RulingFunded): void {

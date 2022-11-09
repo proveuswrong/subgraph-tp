@@ -12,6 +12,7 @@ type Claim @entity {
   createdAtTimestamp: BigInt!
   lastBalanceUpdate: BigInt!
   disputeID: BigInt
+  disputes: [DisputeEntity!] @derivedFrom(field: "claim")
   arbitrator: Bytes
   arbitratorExtraData: Bytes
 }
@@ -37,7 +38,8 @@ type ContributionEntity @entity {
 type DisputeEntity @entity {
   id: ID! # DisputeID
   ruled: Boolean
-  ruling: BigInt!
+  ruling: BigInt
+  claim: Claim!
 }
 
 type MetaEvidenceEntity @entity {
@@ -52,7 +54,7 @@ type CrowdfundingStatus @entity {
 
 
 
-enum Status {
+enum Status {  "I don't know how to use this inside the mapping"
   Absent
   Debunked
   Withdrawn
