@@ -16,7 +16,7 @@ import {
   ClaimWithdrawn
 } from "../generated/ProveMeWrong/ProveMeWrong";
 
-import { Claim, ClaimStorage, EvidenceEntity, ContributionEntity, MetaEvidenceEntity, DisputeEntity, CrowdfundingStatus  } from "../generated/schema";
+import { Claim, ClaimStorage, EventEntity, EvidenceEntity, ContributionEntity, MetaEvidenceEntity, DisputeEntity, CrowdfundingStatus  } from "../generated/schema";
 
 function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
   let claimStorage = ClaimStorage.load(claimStorageAddress.toString());
@@ -38,8 +38,19 @@ function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
   return claim;
 }
 
+function getPopulatedEventEntity(event: ethereum.Event, name: string, claimID: string): EventEntity {
+  let entity = new EventEntity(event.transaction.hash.toHexString() + "-" + event.logIndex.toString());
+  entity.name = name;
+  entity.claim = claimID;
+  entity.timestamp = event.block.timestamp;
+
+  return entity;
+}
+
 export function handleNewClaim(event: NewClaim): void {
   let claimStorage = new ClaimStorage(event.params.claimAddress.toString());
+
+
   claimStorage.claimEntityID = event.params.claimAddress.toString() + "-" + event.block.number.toString();
   claimStorage.save();
 
@@ -61,6 +72,9 @@ export function handleNewClaim(event: NewClaim): void {
   claim.arbitratorExtraData = ARBITRATOR_EXTRA_DATA;
 
   claim.save();
+
+  getPopulatedEventEntity(event, "NewClaim", claim.id).save();
+
 }
 
 export function handleBalanceUpdate(event: BalanceUpdate): void {
@@ -76,6 +90,9 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
   claim.status = "Live";
   claim.bounty = event.params.newTotal;
   claim.save();
+
+  getPopulatedEventEntity(event, "BalanceUpdate", claim.id).save();
+
 }
 
 export function handleChallenge(event: Challenge): void {
@@ -85,6 +102,9 @@ export function handleChallenge(event: Challenge): void {
   claim.challenger = event.transaction.from;
   claim.disputeID = event.params.disputeID;
   claim.save();
+
+  getPopulatedEventEntity(event, "Challenge", claim.id).save();
+
 
   let dispute = new DisputeEntity(event.params.disputeID.toString()) as DisputeEntity;
 
@@ -102,6 +122,9 @@ export function handleDebunked(event: Debunked): void {
   claim.lastCalculatedScore = BigInt.fromI32(0);
 
   claim.save();
+
+  getPopulatedEventEntity(event, "Debunked", claim.id).save();
+
 }
 
 export function handleTimelockStarted(event: TimelockStarted): void {
@@ -123,6 +146,9 @@ export function handleTimelockStarted(event: TimelockStarted): void {
   claim.lastBalanceUpdate = event.block.number;
 
   claim.save();
+
+  getPopulatedEventEntity(event, "TimelockStarted", claim.id).save();
+
 }
 
 export function handleClaimWithdrawal(event: ClaimWithdrawn): void {
@@ -133,6 +159,9 @@ export function handleClaimWithdrawal(event: ClaimWithdrawn): void {
   claim.lastBalanceUpdate = event.block.number;
 
   claim.save();
+
+  getPopulatedEventEntity(event, "ClaimWithdrawal", claim.id).save();
+
 }
 export function handleEvidence(event: Evidence): void {
   let evidenceEntity = new EvidenceEntity(event.params._evidenceGroupID.toString());
@@ -142,9 +171,13 @@ export function handleEvidence(event: Evidence): void {
   evidenceEntity.blockNumber = event.block.number;
 
   evidenceEntity.save();
+
 }
 export function handleContribution(event: Contribution): void {
   let claim = getClaimEntityInstance(event.params.claimStorageAddress);
+
+  getPopulatedEventEntity(event, "ClaimWithdrawal", claim.id).save();
+
 
   let disputeID = claim.disputeID | BigInt.fromI32(0);
 
@@ -168,6 +201,9 @@ export function handleMetaEvidence(event: MetaEvidence): void {
 
 export function handleWithdrawal(event: Withdrawal): void {
   let claim = getClaimEntityInstance(event.params.claimStorageAddress);
+
+  getPopulatedEventEntity(event, "Withdrawal", claim.id).save();
+
 
   let disputeID = claim.disputeID | BigInt.fromI32(0);
 
@@ -211,10 +247,17 @@ export function handleRuling(event: Ruling): void {
   }
 
   claim.save();
+
+  getPopulatedEventEntity(event, "Ruling", claim.id).save();
+
 }
 
 export function handleRulingFunded(event: RulingFunded): void {
   let claim = getClaimEntityInstance(event.params.claimStorageAddress);
+
+  getPopulatedEventEntity(event, "RulingFunded", claim.id).save();
+
+
   let disputeID = claim.disputeID | BigInt.fromI32(0);
 
   const crowdfundingStatus = new CrowdfundingStatus(disputeID.toString() + "-" + event.params.round.toString() + "-" + event.params.ruling.toString());

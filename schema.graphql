@@ -13,6 +13,7 @@ type Claim @entity {
   lastBalanceUpdate: BigInt!
   disputeID: BigInt
   disputes: [DisputeEntity!] @derivedFrom(field: "claim")
+  events: [EventEntity!] @derivedFrom(field: "claim")
   arbitrator: Bytes
   arbitratorExtraData: Bytes
 }
@@ -42,6 +43,13 @@ type DisputeEntity @entity {
   claim: Claim!
 }
 
+type EventEntity @entity {
+  id: ID! # transactionHash-logIndex
+  name: String!
+  timestamp: BigInt!
+  claim: Claim!
+}
+
 type MetaEvidenceEntity @entity {
   id: ID! # 0
   uri: String!
@@ -51,6 +59,8 @@ type CrowdfundingStatus @entity {
   id: ID! # disputeID-round-ruling
   fullyFunded: Boolean!
 }
+
+
 
 
 
