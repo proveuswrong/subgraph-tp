@@ -43,6 +43,7 @@ function getPopulatedEventEntity(event: ethereum.Event, name: string, claimID: s
   entity.name = name;
   entity.claim = claimID;
   entity.timestamp = event.block.timestamp;
+  entity.from = event.transaction.from;
 
   return entity;
 }

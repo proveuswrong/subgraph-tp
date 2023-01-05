@@ -47,6 +47,7 @@ type EventEntity @entity {
   id: ID! # transactionHash-logIndex
   name: String!
   timestamp: BigInt!
+  from: Bytes!
   claim: Claim!
 }
 
