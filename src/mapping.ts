@@ -38,10 +38,11 @@ function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
   return claim;
 }
 
-function getPopulatedEventEntity(event: ethereum.Event, name: string, claimID: string): EventEntity {
+function getPopulatedEventEntity(event: ethereum.Event, name: string, claimID: string, details: string | null = null): EventEntity {
   let entity = new EventEntity(event.transaction.hash.toHexString() + "-" + event.logIndex.toString());
   entity.name = name;
   entity.claim = claimID;
+  if(details) entity.details = details;
   entity.timestamp = event.block.timestamp;
   entity.from = event.transaction.from;
 
@@ -92,7 +93,7 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
   claim.bounty = event.params.newTotal;
   claim.save();
 
-  getPopulatedEventEntity(event, "BalanceUpdate", claim.id).save();
+  getPopulatedEventEntity(event, "BalanceUpdate", claim.id, event.params.newTotal.toString()).save();
 
 }
 
@@ -249,14 +250,14 @@ export function handleRuling(event: Ruling): void {
 
   claim.save();
 
-  getPopulatedEventEntity(event, "Ruling", claim.id).save();
+  getPopulatedEventEntity(event, "Ruling", claim.id, event.params._ruling.toString()).save();
 
 }
 
 export function handleRulingFunded(event: RulingFunded): void {
   let claim = getClaimEntityInstance(event.params.claimStorageAddress);
 
-  getPopulatedEventEntity(event, "RulingFunded", claim.id).save();
+  getPopulatedEventEntity(event, "RulingFunded", claim.id, event.params.ruling.toString()).save();
 
 
   let disputeID = claim.disputeID | BigInt.fromI32(0);

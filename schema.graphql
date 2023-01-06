@@ -46,6 +46,7 @@ type DisputeEntity @entity {
 type EventEntity @entity {
   id: ID! # transactionHash-logIndex
   name: String!
+  details: String # Any extra detail about an event
   timestamp: BigInt!
   from: Bytes!
   claim: Claim!
