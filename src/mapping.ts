@@ -75,7 +75,7 @@ export function handleNewClaim(event: NewClaim): void {
 
   claim.save();
 
-  getPopulatedEventEntity(event, "NewClaim", claim.id).save();
+  getPopulatedEventEntity(event, "NewClaim", claim.id, event.transaction.value.toString()).save();
 
 }
 
@@ -149,7 +149,7 @@ export function handleTimelockStarted(event: TimelockStarted): void {
 
   claim.save();
 
-  getPopulatedEventEntity(event, "TimelockStarted", claim.id).save();
+  getPopulatedEventEntity(event, "TimelockStarted", claim.id, withdrawalPermittedAt.toString()).save();
 
 }
 
@@ -162,7 +162,7 @@ export function handleClaimWithdrawal(event: ClaimWithdrawn): void {
 
   claim.save();
 
-  getPopulatedEventEntity(event, "ClaimWithdrawal", claim.id).save();
+  getPopulatedEventEntity(event, "ClaimWithdrawal", claim.id, claim.lastCalculatedScore.toString()).save();
 
 }
 export function handleEvidence(event: Evidence): void {
@@ -178,7 +178,7 @@ export function handleEvidence(event: Evidence): void {
 export function handleContribution(event: Contribution): void {
   let claim = getClaimEntityInstance(event.params.claimStorageAddress);
 
-  getPopulatedEventEntity(event, "ClaimWithdrawal", claim.id).save();
+  getPopulatedEventEntity(event, "ClaimWithdrawal", claim.id, event.transaction.value.toString()).save();
 
 
   let disputeID = claim.disputeID | BigInt.fromI32(0);
