@@ -250,7 +250,7 @@ export function handleRuling(event: Ruling): void {
 
   claim.save();
 
-  getPopulatedEventEntity(event, "Ruling", claim.id, event.params._ruling.toString(), event.transaction.from).save();
+  getPopulatedEventEntity(event, "Ruling", claim.id, event.params._ruling.toString(), event.params._arbitrator).save();
 
 }
 
