@@ -1,4 +1,4 @@
-import {ethereum, BigInt, log, Address} from "@graphprotocol/graph-ts";
+import {ethereum, BigInt, log, Address, Bytes} from "@graphprotocol/graph-ts";
 import {
   ProveMeWrong,
   BalanceUpdate,
@@ -43,6 +43,8 @@ function getPopulatedEventEntity(event: ethereum.Event, name: string, claimID: s
   entity.name = name;
   entity.claim = claimID;
   if(details) entity.details = details;
+  if(from) entity.from = from;
+
   entity.timestamp = event.block.timestamp;
 
   return entity;
