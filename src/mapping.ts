@@ -1,4 +1,4 @@
-import { ethereum, BigInt, log } from "@graphprotocol/graph-ts";
+import {ethereum, BigInt, log, Address} from "@graphprotocol/graph-ts";
 import {
   ProveMeWrong,
   BalanceUpdate,
@@ -38,13 +38,12 @@ function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
   return claim;
 }
 
-function getPopulatedEventEntity(event: ethereum.Event, name: string, claimID: string, details: string | null = null): EventEntity {
+function getPopulatedEventEntity(event: ethereum.Event, name: string, claimID: string, details: string | null = null, from: Address | null = event.transaction.from): EventEntity {
   let entity = new EventEntity(event.transaction.hash.toHexString() + "-" + event.logIndex.toString());
   entity.name = name;
   entity.claim = claimID;
   if(details) entity.details = details;
   entity.timestamp = event.block.timestamp;
-  entity.from = event.transaction.from;
 
   return entity;
 }
@@ -248,9 +247,10 @@ export function handleRuling(event: Ruling): void {
     claim.status = "Live";
   }
 
+
   claim.save();
 
-  getPopulatedEventEntity(event, "Ruling", claim.id, event.params._ruling.toString()).save();
+  getPopulatedEventEntity(event, "Ruling", claim.id, event.params._ruling.toString(), event.transaction.from).save();
 
 }
 
