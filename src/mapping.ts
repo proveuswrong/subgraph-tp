@@ -75,7 +75,7 @@ export function handleNewClaim(event: NewClaim): void {
 
   claim.save();
 
-  getPopulatedEventEntity(event, "NewClaim", claim.id, event.transaction.value.toString()).save();
+  getPopulatedEventEntity(event, "NewClaim", claim.id, event.params.category.toString()).save();
 
 }
 
