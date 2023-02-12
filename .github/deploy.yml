@@ -1,35 +1,34 @@
 name: Deploy Subgraph
 
-on: 
+on:
   push:
     branch:
-     - master
-    
+      - master
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    steps: 
+    steps:
       - name: Checkout code
-      = uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up Node.js
       - uses: actions/setup-node@v2
-        with: 
+        with:
           node-version: 16
 
       - name: Install dependencies
         run: yarn install
-      
+
       - name: subgraph codegen
         run: yarn codegen
-      
+
       - name: build subgprah
         run: yarn build
-      
+
       - name: authenticate subgraph
         run: graph auth https://api.thegraph.com/deploy/ ${{secrets.SUBGRAPH_AUTH_TOKEN}}
 
       - name: deploy subgraph
         run: yarn deploy
-
