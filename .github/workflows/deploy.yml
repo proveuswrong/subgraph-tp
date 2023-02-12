@@ -28,7 +28,7 @@ jobs:
         run: yarn build
 
       - name: authenticate subgraph
-        run: graph auth https://api.thegraph.com/deploy/ ${{secrets.SUBGRAPH_AUTH_TOKEN}}
+        run: yarn graph auth https://api.thegraph.com/deploy/ ${{secrets.SUBGRAPH_AUTH_TOKEN}}
 
       - name: deploy subgraph
         run: yarn deploy
