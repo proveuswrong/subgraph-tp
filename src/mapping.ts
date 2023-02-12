@@ -76,6 +76,7 @@ export function handleNewClaim(event: NewClaim): void {
   claim.owner = event.transaction.from;
   claim.category = event.params.category;
   claim.status = "Live";
+  claim.bounty = BigInt.fromI32(0);
   claim.withdrawalPermittedAt = BigInt.fromI32(0);
   claim.lastBalanceUpdate = event.block.number;
   claim.createdAtBlock = event.block.number;
@@ -115,7 +116,6 @@ export function handleChallenge(event: Challenge): void {
 
   claim.status = "Challenged";
   claim.challenger = event.transaction.from;
-  claim.disputeID = event.params.disputeID;
   claim.save();
 
   getPopulatedEventEntity(event, "Challenge", claim.id).save();
@@ -145,7 +145,7 @@ export function handleTimelockStarted(event: TimelockStarted): void {
   let contract = ProveMeWrong.bind(event.address);
 
   const CLAIM_WITHDRAWAL_TIMELOCK = contract.CLAIM_WITHDRAWAL_TIMELOCK();
-  let withdrawalPermittedAt = event.block.timestamp + CLAIM_WITHDRAWAL_TIMELOCK;
+  let withdrawalPermittedAt = CLAIM_WITHDRAWAL_TIMELOCK.plus(event.block.timestamp);
 
   claim.status = "TimelockStarted";
   claim.withdrawalPermittedAt = withdrawalPermittedAt;
@@ -187,10 +187,12 @@ export function handleContribution(event: Contribution): void {
 
   getPopulatedEventEntity(event, "ClaimWithdrawal", claim.id, event.transaction.value.toString()).save();
 
-  let disputeID = claim.disputeID | BigInt.fromI32(0);
+  let disputes = claim.disputes;
+  let lastIndex = disputes ? disputes.length - 1 : 0;
+  let lastDisputeId = disputes ? disputes[lastIndex] : BigInt.fromI32(0).toString();
 
   const contributionEntityID =
-    disputeID.toString() + "-" + event.params.round.toString() + "-" + event.params.contributor.toString() + "-" + event.params.ruling.toString();
+    lastDisputeId + "-" + event.params.round.toString() + "-" + event.params.contributor.toString() + "-" + event.params.ruling.toString();
 
   let contributionEntity = ContributionEntity.load(contributionEntityID);
   if (!contributionEntity) contributionEntity = new ContributionEntity(contributionEntityID);
@@ -212,10 +214,12 @@ export function handleWithdrawal(event: Withdrawal): void {
 
   getPopulatedEventEntity(event, "Withdrawal", claim.id).save();
 
-  let disputeID = claim.disputeID | BigInt.fromI32(0);
+  let disputes = claim.disputes;
+  let lastIndex = disputes ? disputes.length - 1 : 0;
+  let lastDisputeId = disputes ? disputes[lastIndex] : BigInt.fromI32(0).toString();
 
   const contributionEntityID =
-    disputeID.toString() + "-" + event.params.round.toString() + "-" + event.params.contributor.toString() + "-" + event.params.ruling.toString();
+    lastDisputeId + "-" + event.params.round.toString() + "-" + event.params.contributor.toString() + "-" + event.params.ruling.toString();
 
   let contributionEntity = ContributionEntity.load(contributionEntityID);
   if (!contributionEntity) {
@@ -262,9 +266,10 @@ export function handleRulingFunded(event: RulingFunded): void {
 
   getPopulatedEventEntity(event, "RulingFunded", claim.id, event.params.ruling.toString()).save();
 
-  let disputeID = claim.disputeID | BigInt.fromI32(0);
-
-  const crowdfundingStatus = new CrowdfundingStatus(disputeID.toString() + "-" + event.params.round.toString() + "-" + event.params.ruling.toString());
+  let disputes = claim.disputes;
+  let lastIndex = disputes ? disputes.length - 1 : 0;
+  let lastDisputeId = disputes ? disputes[lastIndex] : BigInt.fromI32(0).toString();
+  const crowdfundingStatus = new CrowdfundingStatus(lastDisputeId + "-" + event.params.round.toString() + "-" + event.params.ruling.toString());
 
   crowdfundingStatus.fullyFunded = true;
 

@@ -11,7 +11,6 @@ type Claim @entity {
   createdAtBlock: BigInt!
   createdAtTimestamp: BigInt!
   lastBalanceUpdate: BigInt!
-  disputeID: BigInt
   disputes: [DisputeEntity!] @derivedFrom(field: "claim")
   events: [EventEntity!] @derivedFrom(field: "claim")
   arbitrator: Bytes
@@ -62,11 +61,8 @@ type CrowdfundingStatus @entity {
   fullyFunded: Boolean!
 }
 
-
-
-
-
-enum Status {  "I don't know how to use this inside the mapping"
+enum Status {
+  "I don't know how to use this inside the mapping"
   Absent
   Debunked
   Withdrawn
