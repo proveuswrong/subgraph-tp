@@ -35,9 +35,9 @@ jobs:
           docker-compose up -d
 
       - name: Wait for containers to start
-        run: |
-          while [[ "$(docker-compose ps -q | xargs docker inspect --format '{{.State.Status}}')" != "running" ]]; do sleep 2; done
-
+        run: sleep 10
+        # run: |
+        #  while [[ "$(docker-compose ps -q | xargs docker inspect --format '{{.State.Status}}')" != "running" ]]; do sleep 2; done
       - name: Create and deploy a local Subgraph
         run: yarn create-local $SUBGRAPH_NAME
 
