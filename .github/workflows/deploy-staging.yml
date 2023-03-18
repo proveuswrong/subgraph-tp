@@ -39,10 +39,10 @@ jobs:
         # run: |
         #  while [[ "$(docker-compose ps -q | xargs docker inspect --format '{{.State.Status}}')" != "running" ]]; do sleep 2; done
       - name: Create and deploy a local Subgraph
-        run: yarn create-local $SUBGRAPH_NAME
+        run: yarn create-local
 
       - name: Deploy a local Subgraph
-        run: yarn deploy-local $SUBGRAPH_NAME --version-label 0.0.1
+        run: yarn deploy-local --version-label 0.0.1
 
       - name: Post subgraph URL to pull request
         uses: peter-evans/create-or-update-comment@v2
