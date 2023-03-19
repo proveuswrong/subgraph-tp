@@ -73,6 +73,9 @@ jobs:
             A new subgraph deployment has been created for this pull request.
             You can access it at: https://${{env.NGROK_URL}}/subgraphs/name/${{env.SUBGRAPH_NAME}}/graphql
 
+      - name: Wait for 10 mins before completing the workflow
+        run: sleep 600
+
       - name: Stop Docker containers
         if: github.event.pull_request.merged == true || github.event.pull_request.closed == true
         run: docker-compose down
