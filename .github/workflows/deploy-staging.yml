@@ -36,14 +36,14 @@ jobs:
 
       - name: Wait for containers to start
         run: sleep 10
+
         # run: |
         #  while [[ "$(docker-compose ps -q | xargs docker inspect --format '{{.State.Status}}')" != "running" ]]; do sleep 2; done
-
       - name: Download and install ngrok
         run: |
-        curl -s https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip -o ngrok.zip
-        unzip ngrok.zip
-        sudo mv ngrok /usr/local/bin
+          curl -s https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip -o ngrok.zip
+          unzip ngrok.zip
+          sudo mv ngrok /usr/local/bin
 
       - name: Start ngrok tunnel for Graph Node
         run: |
@@ -52,7 +52,7 @@ jobs:
 
       - name: Install jq
         run: sudo apt-get install -y jq
-      
+
       - name: Get ngrok public URL
         run: |
           sleep 10
