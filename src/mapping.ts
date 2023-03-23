@@ -27,7 +27,7 @@ import {
   CrowdfundingStatus, Arbitrator
 } from "../generated/schema";
 import {PolicyUpdate} from "../generated/PolicyRegistry/PolicyRegistry";
-import {KlerosLiquid} from "../generated/KlerosLiquid/KlerosLiquid";
+import {KlerosLiquid, NewPhase} from "../generated/KlerosLiquid/KlerosLiquid";
 
 import { dataSource } from "@graphprotocol/graph-ts";
 
@@ -79,10 +79,10 @@ export function handlePolicyUpdate(event: PolicyUpdate): void {
   const timesPerPeriod = arbitrator.getSubcourt(event.params._subcourtID).getTimesPerPeriod();
 
    (arbitratorEntity.policies = arbitratorEntity.policies || new Array<String>())[event.params._subcourtID.toI32()] = event.params._policy;
-  (arbitratorEntity.evidencePeriod = arbitratorEntity.evidencePeriod || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[0].toI32();
-  (arbitratorEntity.commitPeriod = arbitratorEntity.commitPeriod || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[1].toI32();
-  (arbitratorEntity.votingPeriod = arbitratorEntity.votingPeriod || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[2].toI32();
-  (arbitratorEntity.appealPeriod = arbitratorEntity.appealPeriod || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[3].toI32();
+  (arbitratorEntity.evidencePeriods = arbitratorEntity.evidencePeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[0].toI32();
+  (arbitratorEntity.commitPeriods = arbitratorEntity.commitPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[1].toI32();
+  (arbitratorEntity.votingPeriods = arbitratorEntity.votingPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[2].toI32();
+  (arbitratorEntity.appealPeriods = arbitratorEntity.appealPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[3].toI32();
 
   arbitratorEntity.save();
 }
@@ -258,6 +258,12 @@ export function handleDispute(event: Dispute): void {
   // const disputeEntity = new DisputeEntity(event.params._disputeID.toString());
   // disputeEntity.save();
 }
+
+export function handleNewPhase(event: NewPhase): void {
+  // you can safely delete this comment
+}
+
+
 export function handleRuling(event: Ruling): void {
   const disputeEntity = DisputeEntity.load(event.params._disputeID.toString());
 
