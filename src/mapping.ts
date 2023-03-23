@@ -24,8 +24,13 @@ import {
   ContributionEntity,
   MetaEvidenceEntity,
   DisputeEntity,
-  CrowdfundingStatus
+  CrowdfundingStatus, Arbitrator
 } from "../generated/schema";
+import {PolicyUpdate} from "../generated/PolicyRegistry/PolicyRegistry";
+import {KlerosLiquid, NewPhase} from "../generated/KlerosLiquid/KlerosLiquid";
+
+import { dataSource } from "@graphprotocol/graph-ts";
+
 
 function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
   let claimStorage = ClaimStorage.load(claimStorageAddress.toString());
@@ -65,6 +70,25 @@ function getPopulatedEventEntity(
   return entity;
 }
 
+export function handlePolicyUpdate(event: PolicyUpdate): void {
+  const ADDRESS = "0x1128eD55ab2d796fa92D2F8E1f336d745354a77A"; // TODO This is duplicated, try to obtain from subgraph.yaml.
+
+  let arbitratorEntity = Arbitrator.load(ADDRESS);
+  if(!arbitratorEntity) arbitratorEntity = new Arbitrator(ADDRESS);
+
+  const arbitrator = KlerosLiquid.bind(Address.fromBytes(Address.fromHexString(ADDRESS)));
+
+  const timesPerPeriod = arbitrator.getSubcourt(event.params._subcourtID).getTimesPerPeriod();
+
+   (arbitratorEntity.policies = arbitratorEntity.policies || new Array<String>())[event.params._subcourtID.toI32()] = event.params._policy;
+  (arbitratorEntity.evidencePeriods = arbitratorEntity.evidencePeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[0].toI32();
+  (arbitratorEntity.commitPeriods = arbitratorEntity.commitPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[1].toI32();
+  (arbitratorEntity.votingPeriods = arbitratorEntity.votingPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[2].toI32();
+  (arbitratorEntity.appealPeriods = arbitratorEntity.appealPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[3].toI32();
+
+  arbitratorEntity.save();
+}
+
 export function handleNewClaim(event: NewClaim): void {
   let claimStorage = new ClaimStorage(event.params.claimAddress.toString());
 
@@ -84,9 +108,9 @@ export function handleNewClaim(event: NewClaim): void {
   claim.lastCalculatedScore = BigInt.fromI32(0);
 
   let contract = ProveMeWrong.bind(event.address);
-  const ARBITRATOR = contract.ARBITRATOR();
+  const ARBITRATOR_CONTRACT_ADDRESS = contract.ARBITRATOR();
   const ARBITRATOR_EXTRA_DATA = contract.categoryToArbitratorExtraData(BigInt.fromI32(0));
-  claim.arbitrator = ARBITRATOR;
+  claim.arbitrator = ARBITRATOR_CONTRACT_ADDRESS.toString();
   claim.arbitratorExtraData = ARBITRATOR_EXTRA_DATA;
 
   claim.save();
@@ -236,6 +260,12 @@ export function handleDispute(event: Dispute): void {
   // const disputeEntity = new DisputeEntity(event.params._disputeID.toString());
   // disputeEntity.save();
 }
+
+export function handleNewPhase(event: NewPhase): void {
+  // you can safely delete this comment
+}
+
+
 export function handleRuling(event: Ruling): void {
   const disputeEntity = DisputeEntity.load(event.params._disputeID.toString());
 
