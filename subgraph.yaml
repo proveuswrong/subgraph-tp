@@ -3,6 +3,44 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum
+    name: KlerosLiquid
+    network: goerli
+    source:
+      address: "0x1128eD55ab2d796fa92D2F8E1f336d745354a77A"
+      abi: KlerosLiquid
+      startBlock: 6790826
+    mapping:
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - XYZ
+      abis:
+        - name: KlerosLiquid
+          file: ./abis/KlerosLiquid.json
+      eventHandlers:
+        - event: NewPhase(uint8)
+          handler: handleNewPhase
+      file: ./src/mapping.ts
+  - kind: ethereum
+    name: PolicyRegistry
+    network: goerli
+    source:
+      address: "0x28c8A3A2E3c8Cd3F795DB83764316a1129a069bA"
+      abi: PolicyRegistry
+      startBlock: 6790826
+    mapping:
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - PolicyUpdate
+      abis:
+        - name: PolicyRegistry
+          file: ./abis/PolicyRegistry.json
+      eventHandlers:
+        - event: PolicyUpdate(indexed uint256,string)
+          handler: handlePolicyUpdate
+      file: ./src/mapping.ts
+  - kind: ethereum
     name: ProveMeWrong
     network: goerli
     source:
