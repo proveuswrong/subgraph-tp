@@ -16,7 +16,18 @@ import {
   ClaimWithdrawn
 } from "../generated/ProveMeWrong/ProveMeWrong";
 
-import { Claim, ClaimStorage, EventEntity, EvidenceEntity, ContributionEntity, MetaEvidenceEntity, DisputeEntity, CrowdfundingStatus  } from "../generated/schema";
+import {
+  Claim,
+  ClaimStorage,
+  EventEntity,
+  EvidenceEntity,
+  ContributionEntity,
+  MetaEvidenceEntity,
+  DisputeEntity,
+  CrowdfundingStatus,
+  Arbitrator,
+} from "../generated/schema";
+import {PolicyRegistry, PolicyUpdate} from "../generated/PolicyRegistry/PolicyRegistry";
 
 function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
   let claimStorage = ClaimStorage.load(claimStorageAddress.toString());
@@ -69,9 +80,9 @@ export function handleNewClaim(event: NewClaim): void {
   claim.lastCalculatedScore = BigInt.fromI32(0);
 
   let contract = ProveMeWrong.bind(event.address);
-  const ARBITRATOR = contract.ARBITRATOR();
+  const ARBITRATOR_CONTRACT = contract.ARBITRATOR();
   const ARBITRATOR_EXTRA_DATA = contract.categoryToArbitratorExtraData(BigInt.fromI32(0));
-  claim.arbitrator = ARBITRATOR;
+  claim.arbitrator = ARBITRATOR_CONTRACT.toString();
   claim.arbitratorExtraData = ARBITRATOR_EXTRA_DATA;
 
   claim.save();

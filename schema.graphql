@@ -14,8 +14,9 @@ type Claim @entity {
   disputeID: BigInt
   disputes: [DisputeEntity!] @derivedFrom(field: "claim")
   events: [EventEntity!] @derivedFrom(field: "claim")
-  arbitrator: Bytes
+  arbitrator: Arbitrator
   arbitratorExtraData: Bytes
+
 }
 
 type ClaimStorage @entity {
@@ -62,9 +63,15 @@ type CrowdfundingStatus @entity {
   fullyFunded: Boolean!
 }
 
+type Arbitrator @entity {
+  id: ID! # contract address
+  policies: [String!]
+  timesPerPeriod: [[Int!]]
+}
 
-
-
+type XYZ @entity {
+  id: ID!
+}
 
 enum Status {  "I don't know how to use this inside the mapping"
   Absent
