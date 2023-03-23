@@ -72,10 +72,12 @@ function getPopulatedEventEntity(
 
 export function handlePolicyUpdate(event: PolicyUpdate): void {
   const ADDRESS = "0x1128eD55ab2d796fa92D2F8E1f336d745354a77A"; // TODO This is duplicated, try to obtain from subgraph.yaml.
+
   let arbitratorEntity = Arbitrator.load(ADDRESS);
   if(!arbitratorEntity) arbitratorEntity = new Arbitrator(ADDRESS);
 
-  const arbitrator = KlerosLiquid.bind(Address.fromString(ADDRESS));
+  const arbitrator = KlerosLiquid.bind(Address.fromBytes(Address.fromHexString(ADDRESS)));
+
   const timesPerPeriod = arbitrator.getSubcourt(event.params._subcourtID).getTimesPerPeriod();
 
    (arbitratorEntity.policies = arbitratorEntity.policies || new Array<String>())[event.params._subcourtID.toI32()] = event.params._policy;

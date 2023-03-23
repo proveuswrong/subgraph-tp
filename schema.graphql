@@ -13,7 +13,7 @@ type Claim @entity {
   lastBalanceUpdate: BigInt!
   disputes: [DisputeEntity!] @derivedFrom(field: "claim")
   events: [EventEntity!] @derivedFrom(field: "claim")
-  arbitrator: Arbitrator!
+  arbitrator: Arbitrator
   arbitratorExtraData: Bytes
 }
 
@@ -64,10 +64,10 @@ type CrowdfundingStatus @entity {
 type Arbitrator @entity {
   id: ID! # arbitrator contract id
   policies: [String!]!
-  evidencePeriod: [Int!]!
-  commitPeriod: [Int!]!
-  votingPeriod: [Int!]!
-  appealPeriod: [Int!]!
+  evidencePeriods: [Int!]!
+  commitPeriods: [Int!]!
+  votingPeriods: [Int!]!
+  appealPeriods: [Int!]!
 }
 
 enum Status {
