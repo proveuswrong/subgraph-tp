@@ -27,18 +27,11 @@ import {
   ContributionEntity,
   MetaEvidenceEntity,
   DisputeEntity,
-<<<<<<< HEAD
-  CrowdfundingStatus, Arbitrator
-=======
   CrowdfundingStatus,
   CourtEntity
->>>>>>> feat: update mapping to index policy and court data
 } from "../generated/schema";
-import {PolicyUpdate} from "../generated/PolicyRegistry/PolicyRegistry";
-import {KlerosLiquid, NewPhase} from "../generated/KlerosLiquid/KlerosLiquid";
 
-import { dataSource } from "@graphprotocol/graph-ts";
-
+const TO_BE_SET_LATER = "To be set later";
 
 function getPeriodName(index: i32): string {
   const periods = ["evidence", "commit", "vote", "appeal", "execution"];
@@ -81,25 +74,6 @@ function getPopulatedEventEntity(
   entity.timestamp = event.block.timestamp;
 
   return entity;
-}
-
-export function handlePolicyUpdate(event: PolicyUpdate): void {
-  const ADDRESS = "0x1128eD55ab2d796fa92D2F8E1f336d745354a77A"; // TODO This is duplicated, try to obtain from subgraph.yaml.
-
-  let arbitratorEntity = Arbitrator.load(ADDRESS);
-  if(!arbitratorEntity) arbitratorEntity = new Arbitrator(ADDRESS);
-
-  const arbitrator = KlerosLiquid.bind(Address.fromBytes(Address.fromHexString(ADDRESS)));
-
-  const timesPerPeriod = arbitrator.getSubcourt(event.params._subcourtID).getTimesPerPeriod();
-
-   (arbitratorEntity.policies = arbitratorEntity.policies || new Array<String>())[event.params._subcourtID.toI32()] = event.params._policy;
-  (arbitratorEntity.evidencePeriods = arbitratorEntity.evidencePeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[0].toI32();
-  (arbitratorEntity.commitPeriods = arbitratorEntity.commitPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[1].toI32();
-  (arbitratorEntity.votingPeriods = arbitratorEntity.votingPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[2].toI32();
-  (arbitratorEntity.appealPeriods = arbitratorEntity.appealPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[3].toI32();
-
-  arbitratorEntity.save();
 }
 
 export function handleNewClaim(event: NewClaim): void {
@@ -157,8 +131,13 @@ export function handleChallenge(event: Challenge): void {
 
   getPopulatedEventEntity(event, "Challenge", claim.id).save();
 
-  let dispute = DisputeEntity.load(event.params.disputeID.toString()) as DisputeEntity;
+  const disputeID = event.params.disputeID.toString();
+  let dispute = DisputeEntity.load(disputeID);
+  if (!dispute) {
+    dispute = new DisputeEntity(disputeID);
+  }
 
+  dispute.court = TO_BE_SET_LATER;
   dispute.claim = claim.id;
   dispute.save();
 }
@@ -166,6 +145,7 @@ export function handleChallenge(event: Challenge): void {
 export function handleDispute(event: Dispute): void {
   const contract = KlerosLiquid.bind(event.params._arbitrator);
   const disputeID = event.params._disputeID;
+
   const disputeEntity = new DisputeEntity(disputeID.toString()) as DisputeEntity;
   const dispute = contract.disputes(disputeID);
 
@@ -174,14 +154,22 @@ export function handleDispute(event: Dispute): void {
   if (!courtEntity) {
     courtEntity = new CourtEntity(courtID.toString());
   }
-  // KlerosLiquidV1 doesn't emit event on timesPerPeriod update. Hence, need to be checked.
+
   courtEntity.timesPerPeriod = contract.getSubcourt(courtID).getTimesPerPeriod();
   courtEntity.hiddenVotes = contract.courts(courtID).getHiddenVotes();
 
+  /** NOTE:
+   *   Currently `disputes` mapping in the PMW contract has private visibility modifier.
+   *   Instead of setting claim field on dispute entity to an invalid value,
+   *   the following solution approach is to be considered, in case `dispute` mapping is set as public:
+   *
+   *     const PMW = ProveMeWrong.bind(event.address);
+   *     const disputeDataStorage = PMW.disputes(event.params._disputeID);
+   *     let claim = getClaimEntityInstance(disputeDataStorage.claimStorageAddress);
+   *     disputeEntity.claim = claim.id;
+   */
   disputeEntity.court = courtID.toString();
-  disputeEntity.claim = "None";
-  disputeEntity.period = getPeriodName(dispute.getPeriod());
-  disputeEntity.lastPeriodChange = dispute.getLastPeriodChange();
+  disputeEntity.claim = TO_BE_SET_LATER;
 
   courtEntity.save();
   disputeEntity.save();
@@ -294,19 +282,6 @@ export function handleWithdrawal(event: Withdrawal): void {
   contributionEntity.save();
 }
 
-<<<<<<< HEAD
-export function handleDispute(event: Dispute): void {
-  // const disputeEntity = new DisputeEntity(event.params._disputeID.toString());
-  // disputeEntity.save();
-}
-
-export function handleNewPhase(event: NewPhase): void {
-  // you can safely delete this comment
-}
-
-
-=======
->>>>>>> feat: update mapping to index policy and court data
 export function handleRuling(event: Ruling): void {
   const disputeEntity = DisputeEntity.load(event.params._disputeID.toString());
 
@@ -347,6 +322,16 @@ export function handleRulingFunded(event: RulingFunded): void {
   crowdfundingStatus.save();
 }
 
+export function handleNewPeriod(event: NewPeriod): void {
+  let dispute = DisputeEntity.load(event.params._disputeID.toString());
+  if (!dispute) return;
+
+  dispute.period = getPeriodName(event.params._period);
+  dispute.lastPeriodChange = event.block.timestamp;
+
+  dispute.save();
+}
+
 export function handlePolicyUpdate(event: PolicyUpdate): void {
   let court = CourtEntity.load(event.params._subcourtID.toString());
   if (!court) {
@@ -358,11 +343,21 @@ export function handlePolicyUpdate(event: PolicyUpdate): void {
   court.save();
 }
 
-export function handleNewPeriod(event: NewPeriod): void {
-  const dispute = DisputeEntity.load(event.params._disputeID.toString());
-  if (!dispute) return;
+/* export function handlePolicyUpdate(event: PolicyUpdate): void {
+  const ADDRESS = "0x1128eD55ab2d796fa92D2F8E1f336d745354a77A"; // TODO This is duplicated, try to obtain from subgraph.yaml.
 
-  dispute.period = getPeriodName(event.params._period);
-  dispute.lastPeriodChange = event.block.timestamp;
-  dispute.save();
-}
+  let arbitratorEntity = Arbitrator.load(ADDRESS);
+  if (!arbitratorEntity) arbitratorEntity = new Arbitrator(ADDRESS);
+
+  const arbitrator = KlerosLiquid.bind(Address.fromBytes(Address.fromHexString(ADDRESS)));
+
+  const timesPerPeriod = arbitrator.getSubcourt(event.params._subcourtID).getTimesPerPeriod();
+
+  (arbitratorEntity.policies = arbitratorEntity.policies || new Array<String>())[event.params._subcourtID.toI32()] = event.params._policy;
+  (arbitratorEntity.evidencePeriods = arbitratorEntity.evidencePeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[0].toI32();
+  (arbitratorEntity.commitPeriods = arbitratorEntity.commitPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[1].toI32();
+  (arbitratorEntity.votingPeriods = arbitratorEntity.votingPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[2].toI32();
+  (arbitratorEntity.appealPeriods = arbitratorEntity.appealPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[3].toI32();
+
+  arbitratorEntity.save();
+} */
