@@ -1,4 +1,7 @@
-import { ethereum, BigInt, log, Address, Bytes } from "@graphprotocol/graph-ts";
+import { ethereum, BigInt, log, Address } from "@graphprotocol/graph-ts";
+
+import { PolicyUpdate } from "../generated/PolicyRegistry/PolicyRegistry";
+import { KlerosLiquid, NewPeriod } from "../generated/KlerosLiquid/KlerosLiquid";
 import {
   ProveMeWrong,
   BalanceUpdate,
@@ -24,13 +27,23 @@ import {
   ContributionEntity,
   MetaEvidenceEntity,
   DisputeEntity,
+<<<<<<< HEAD
   CrowdfundingStatus, Arbitrator
+=======
+  CrowdfundingStatus,
+  CourtEntity
+>>>>>>> feat: update mapping to index policy and court data
 } from "../generated/schema";
 import {PolicyUpdate} from "../generated/PolicyRegistry/PolicyRegistry";
 import {KlerosLiquid, NewPhase} from "../generated/KlerosLiquid/KlerosLiquid";
 
 import { dataSource } from "@graphprotocol/graph-ts";
 
+
+function getPeriodName(index: i32): string {
+  const periods = ["evidence", "commit", "vote", "appeal", "execution"];
+  return periods.at(index) || "None";
+}
 
 function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
   let claimStorage = ClaimStorage.load(claimStorageAddress.toString());
@@ -144,10 +157,34 @@ export function handleChallenge(event: Challenge): void {
 
   getPopulatedEventEntity(event, "Challenge", claim.id).save();
 
-  let dispute = new DisputeEntity(event.params.disputeID.toString()) as DisputeEntity;
+  let dispute = DisputeEntity.load(event.params.disputeID.toString()) as DisputeEntity;
 
   dispute.claim = claim.id;
   dispute.save();
+}
+
+export function handleDispute(event: Dispute): void {
+  const contract = KlerosLiquid.bind(event.params._arbitrator);
+  const disputeID = event.params._disputeID;
+  const disputeEntity = new DisputeEntity(disputeID.toString()) as DisputeEntity;
+  const dispute = contract.disputes(disputeID);
+
+  const courtID = dispute.getSubcourtID();
+  let courtEntity = CourtEntity.load(courtID.toString());
+  if (!courtEntity) {
+    courtEntity = new CourtEntity(courtID.toString());
+  }
+  // KlerosLiquidV1 doesn't emit event on timesPerPeriod update. Hence, need to be checked.
+  courtEntity.timesPerPeriod = contract.getSubcourt(courtID).getTimesPerPeriod();
+  courtEntity.hiddenVotes = contract.courts(courtID).getHiddenVotes();
+
+  disputeEntity.court = courtID.toString();
+  disputeEntity.claim = "None";
+  disputeEntity.period = getPeriodName(dispute.getPeriod());
+  disputeEntity.lastPeriodChange = dispute.getLastPeriodChange();
+
+  courtEntity.save();
+  disputeEntity.save();
 }
 
 export function handleDebunked(event: Debunked): void {
@@ -197,6 +234,7 @@ export function handleClaimWithdrawal(event: ClaimWithdrawn): void {
 
   getPopulatedEventEntity(event, "ClaimWithdrawal", claim.id, claim.lastCalculatedScore.toString()).save();
 }
+
 export function handleEvidence(event: Evidence): void {
   let evidenceEntity = new EvidenceEntity(event.params._evidenceGroupID.toString());
 
@@ -256,6 +294,7 @@ export function handleWithdrawal(event: Withdrawal): void {
   contributionEntity.save();
 }
 
+<<<<<<< HEAD
 export function handleDispute(event: Dispute): void {
   // const disputeEntity = new DisputeEntity(event.params._disputeID.toString());
   // disputeEntity.save();
@@ -266,6 +305,8 @@ export function handleNewPhase(event: NewPhase): void {
 }
 
 
+=======
+>>>>>>> feat: update mapping to index policy and court data
 export function handleRuling(event: Ruling): void {
   const disputeEntity = DisputeEntity.load(event.params._disputeID.toString());
 
@@ -304,4 +345,24 @@ export function handleRulingFunded(event: RulingFunded): void {
   crowdfundingStatus.fullyFunded = true;
 
   crowdfundingStatus.save();
+}
+
+export function handlePolicyUpdate(event: PolicyUpdate): void {
+  let court = CourtEntity.load(event.params._subcourtID.toString());
+  if (!court) {
+    court = new CourtEntity(event.params._subcourtID.toString());
+  }
+  court.policy = event.params._policy;
+  court.hiddenVotes = false;
+  court.timesPerPeriod = [BigInt.fromI32(0)];
+  court.save();
+}
+
+export function handleNewPeriod(event: NewPeriod): void {
+  const dispute = DisputeEntity.load(event.params._disputeID.toString());
+  if (!dispute) return;
+
+  dispute.period = getPeriodName(event.params._period);
+  dispute.lastPeriodChange = event.block.timestamp;
+  dispute.save();
 }
