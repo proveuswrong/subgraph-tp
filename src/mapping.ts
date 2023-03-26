@@ -76,15 +76,24 @@ export function handlePolicyUpdate(event: PolicyUpdate): void {
   let arbitratorEntity = Arbitrator.load(ADDRESS);
   if(!arbitratorEntity) arbitratorEntity = new Arbitrator(ADDRESS);
 
-  const arbitrator = KlerosLiquid.bind(Address.fromBytes(Address.fromHexString(ADDRESS)));
+  const arbitrator = KlerosLiquid.bind(Address.fromString(ADDRESS));
 
   const timesPerPeriod = arbitrator.getSubcourt(event.params._subcourtID).getTimesPerPeriod();
 
-   (arbitratorEntity.policies = arbitratorEntity.policies || new Array<String>())[event.params._subcourtID.toI32()] = event.params._policy;
-  (arbitratorEntity.evidencePeriods = arbitratorEntity.evidencePeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[0].toI32();
-  (arbitratorEntity.commitPeriods = arbitratorEntity.commitPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[1].toI32();
-  (arbitratorEntity.votingPeriods = arbitratorEntity.votingPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[2].toI32();
-  (arbitratorEntity.appealPeriods = arbitratorEntity.appealPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[3].toI32();
+  (arbitratorEntity.policies = arbitratorEntity.policies || new Array<String>())[event.params._subcourtID.toI32()] = event.params._policy;
+
+
+  arbitratorEntity.evidencePeriods = arbitratorEntity.evidencePeriods || new Array<i32>();
+  arbitratorEntity.evidencePeriods[event.params._subcourtID.toI32()] = timesPerPeriod[0].toI32();
+
+  arbitratorEntity.commitPeriods = arbitratorEntity.commitPeriods || new Array<i32>();
+  arbitratorEntity.commitPeriods[event.params._subcourtID.toI32()] = timesPerPeriod[1].toI32();
+
+  arbitratorEntity.votingPeriods = arbitratorEntity.votingPeriods || new Array<i32>();
+  arbitratorEntity.votingPeriods[event.params._subcourtID.toI32()] = timesPerPeriod[2].toI32();
+
+  arbitratorEntity.appealPeriods = arbitratorEntity.appealPeriods || new Array<i32>();
+  arbitratorEntity.appealPeriods[event.params._subcourtID.toI32()] = timesPerPeriod[3].toI32();
 
   arbitratorEntity.save();
 }
