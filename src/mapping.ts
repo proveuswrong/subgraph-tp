@@ -123,6 +123,17 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
 }
 
 export function handleChallenge(event: Challenge): void {
+  const contract = ProveMeWrong.bind(event.address);
+  const arbitratorAddress = contract.ARBITRATOR();
+
+  const arbitrator = KlerosLiquid.bind(arbitratorAddress);
+  const courtID = arbitrator.disputes(event.params.disputeID).getSubcourtID();
+
+  const courtEntity = new CourtEntity(courtID.toString());
+
+  courtEntity.timesPerPeriod = arbitrator.getSubcourt(courtID).getTimesPerPeriod();
+  courtEntity.hiddenVotes = arbitrator.courts(courtID).getHiddenVotes();
+
   let claim = getClaimEntityInstance(event.params.claimAddress);
 
   claim.status = "Challenged";
@@ -132,21 +143,26 @@ export function handleChallenge(event: Challenge): void {
   getPopulatedEventEntity(event, "Challenge", claim.id).save();
 
   const disputeID = event.params.disputeID.toString();
-  let dispute = DisputeEntity.load(disputeID);
-  if (!dispute) {
-    dispute = new DisputeEntity(disputeID);
+  let disputeEntity = DisputeEntity.load(disputeID);
+  if (!disputeEntity) {
+    disputeEntity = new DisputeEntity(disputeID);
   }
 
-  dispute.court = TO_BE_SET_LATER;
-  dispute.claim = claim.id;
-  dispute.save();
+  disputeEntity.court = courtEntity.id;
+  disputeEntity.claim = claim.id;
+
+  courtEntity.save();
+  disputeEntity.save();
 }
 
 export function handleDispute(event: Dispute): void {
-  const contract = KlerosLiquid.bind(event.params._arbitrator);
+  /* const contract = KlerosLiquid.bind(event.params._arbitrator);
   const disputeID = event.params._disputeID;
 
-  const disputeEntity = new DisputeEntity(disputeID.toString()) as DisputeEntity;
+  let disputeEntity = DisputeEntity.load(disputeID.toString());
+  if (!disputeEntity) {
+    disputeEntity = new DisputeEntity(disputeID.toString());
+  }
   const dispute = contract.disputes(disputeID);
 
   const courtID = dispute.getSubcourtID();
@@ -158,7 +174,7 @@ export function handleDispute(event: Dispute): void {
   courtEntity.timesPerPeriod = contract.getSubcourt(courtID).getTimesPerPeriod();
   courtEntity.hiddenVotes = contract.courts(courtID).getHiddenVotes();
 
-  /** NOTE:
+   NOTE:
    *   Currently `disputes` mapping in the PMW contract has private visibility modifier.
    *   Instead of setting claim field on dispute entity to an invalid value,
    *   the following solution approach is to be considered, in case `dispute` mapping is set as public:
@@ -167,12 +183,12 @@ export function handleDispute(event: Dispute): void {
    *     const disputeDataStorage = PMW.disputes(event.params._disputeID);
    *     let claim = getClaimEntityInstance(disputeDataStorage.claimStorageAddress);
    *     disputeEntity.claim = claim.id;
-   */
+   *
   disputeEntity.court = courtID.toString();
-  disputeEntity.claim = TO_BE_SET_LATER;
+  disputeEntity.claim = disputeEntity.claim ? disputeEntity.claim : TO_BE_SET_LATER;
 
   courtEntity.save();
-  disputeEntity.save();
+  disputeEntity.save(); */
 }
 
 export function handleDebunked(event: Debunked): void {
