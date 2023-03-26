@@ -28,7 +28,7 @@ import {
   MetaEvidenceEntity,
   DisputeEntity,
   CrowdfundingStatus,
-  CourtEntity
+  CourtEntity, Arbitrator
 } from "../generated/schema";
 
 const TO_BE_SET_LATER = "To be set later";
@@ -311,7 +311,6 @@ export function handleRuling(event: Ruling): void {
   let claim = getClaimEntityInstance(BigInt.fromString(disputeEntity.claim.split("-")[0]));
 
   disputeEntity.ruled = true;
-  disputeEntity.ruling = event.params._ruling;
   disputeEntity.save();
 
   if (event.params._ruling.equals(BigInt.fromI32(2))) {
@@ -344,6 +343,7 @@ export function handleNewPeriod(event: NewPeriod): void {
   let dispute = DisputeEntity.load(event.params._disputeID.toString());
   if (!dispute) return;
 
+  dispute.ruling = KlerosLiquid.bind(event.address).currentRuling(event.params._disputeID);
   dispute.period = getPeriodName(event.params._period);
   dispute.lastPeriodChange = event.block.timestamp;
 
