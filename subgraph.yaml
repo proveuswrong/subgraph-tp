@@ -70,6 +70,8 @@ dataSources:
       abis:
         - name: ProveMeWrong
           file: ./abis/ProveMeWrong.json
+        - name: KlerosLiquid
+          file: ./abis/KlerosLiquid.json
       eventHandlers:
         - event: BalanceUpdate(uint256,uint256)
           handler: handleBalanceUpdate
@@ -97,4 +99,45 @@ dataSources:
           handler: handleWithdrawal
         - event: ClaimWithdrawn(uint256)
           handler: handleClaimWithdrawal
+      file: ./src/mapping.ts
+  - kind: ethereum
+    name: PolicyRegistry
+    network: goerli
+    source:
+      address: "0x28c8A3A2E3c8Cd3F795DB83764316a1129a069bA"
+      abi: PolicyRegistry
+      startBlock: 5894121
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - CourtEntity
+      abis:
+        - name: PolicyRegistry
+          file: ./abis/PolicyRegistry.json
+      eventHandlers:
+        - event: PolicyUpdate(indexed uint256,string)
+          handler: handlePolicyUpdate
+      file: ./src/mapping.ts
+  - kind: ethereum
+    name: KlerosLiquid
+    network: goerli
+    source:
+      address: "0x1128eD55ab2d796fa92D2F8E1f336d745354a77A"
+      abi: KlerosLiquid
+      startBlock: 6790826
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - CourtEntity
+        - DisputeEntity
+      abis:
+        - name: KlerosLiquid
+          file: ./abis/KlerosLiquid.json
+      eventHandlers:
+        - event: NewPeriod(indexed uint256,uint8)
+          handler: handleNewPeriod
       file: ./src/mapping.ts
