@@ -127,7 +127,7 @@ export function handleChallenge(event: Challenge): void {
   const arbitratorAddress = contract.ARBITRATOR();
 
   const arbitrator = KlerosLiquid.bind(arbitratorAddress);
-  const courtID = arbitrator.disputes(event.params.disputeID).getSubcourtID(); // WE KNOW ARBITRATOR EXTRA DATA
+  const courtID = arbitrator.disputes(event.params.disputeID).getSubcourtID(); // TODO: OBTAIN SUBCOURTID FROM ARBITRATOR_EXTRA_DATA
 
   const courtEntity = new CourtEntity(courtID.toString());
 
@@ -148,6 +148,8 @@ export function handleChallenge(event: Challenge): void {
     disputeEntity = new DisputeEntity(disputeID);
   }
 
+  disputeEntity.period = getPeriodName(0);
+  disputeEntity.lastPeriodChange = event.block.timestamp;
   disputeEntity.court = courtEntity.id;
   disputeEntity.claim = claim.id;
 
