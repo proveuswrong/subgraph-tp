@@ -1,4 +1,7 @@
-import { ethereum, BigInt, log, Address, Bytes } from "@graphprotocol/graph-ts";
+import { ethereum, BigInt, log, Address } from "@graphprotocol/graph-ts";
+
+import { PolicyUpdate } from "../generated/PolicyRegistry/PolicyRegistry";
+import { KlerosLiquid, NewPeriod } from "../generated/KlerosLiquid/KlerosLiquid";
 import {
   ProveMeWrong,
   BalanceUpdate,
@@ -24,13 +27,16 @@ import {
   ContributionEntity,
   MetaEvidenceEntity,
   DisputeEntity,
-  CrowdfundingStatus, Arbitrator
+  CrowdfundingStatus,
+  CourtEntity, Arbitrator
 } from "../generated/schema";
-import {PolicyUpdate} from "../generated/PolicyRegistry/PolicyRegistry";
-import {KlerosLiquid, NewPhase} from "../generated/KlerosLiquid/KlerosLiquid";
 
-import { dataSource } from "@graphprotocol/graph-ts";
+const TO_BE_SET_LATER = "To be set later";
 
+function getPeriodName(index: i32): string {
+  const periods = ["evidence", "commit", "vote", "appeal", "execution"];
+  return periods.at(index) || "None";
+}
 
 function getClaimEntityInstance(claimStorageAddress: BigInt): Claim {
   let claimStorage = ClaimStorage.load(claimStorageAddress.toString());
@@ -70,25 +76,6 @@ function getPopulatedEventEntity(
   return entity;
 }
 
-export function handlePolicyUpdate(event: PolicyUpdate): void {
-  const ADDRESS = "0x1128eD55ab2d796fa92D2F8E1f336d745354a77A"; // TODO This is duplicated, try to obtain from subgraph.yaml.
-
-  let arbitratorEntity = Arbitrator.load(ADDRESS);
-  if(!arbitratorEntity) arbitratorEntity = new Arbitrator(ADDRESS);
-
-  const arbitrator = KlerosLiquid.bind(Address.fromBytes(Address.fromHexString(ADDRESS)));
-
-  const timesPerPeriod = arbitrator.getSubcourt(event.params._subcourtID).getTimesPerPeriod();
-
-   (arbitratorEntity.policies = arbitratorEntity.policies || new Array<String>())[event.params._subcourtID.toI32()] = event.params._policy;
-  (arbitratorEntity.evidencePeriods = arbitratorEntity.evidencePeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[0].toI32();
-  (arbitratorEntity.commitPeriods = arbitratorEntity.commitPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[1].toI32();
-  (arbitratorEntity.votingPeriods = arbitratorEntity.votingPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[2].toI32();
-  (arbitratorEntity.appealPeriods = arbitratorEntity.appealPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[3].toI32();
-
-  arbitratorEntity.save();
-}
-
 export function handleNewClaim(event: NewClaim): void {
   let claimStorage = new ClaimStorage(event.params.claimAddress.toString());
 
@@ -109,7 +96,7 @@ export function handleNewClaim(event: NewClaim): void {
 
   let contract = ProveMeWrong.bind(event.address);
   const ARBITRATOR_CONTRACT_ADDRESS = contract.ARBITRATOR();
-  const ARBITRATOR_EXTRA_DATA = contract.categoryToArbitratorExtraData(BigInt.fromI32(0));
+  const ARBITRATOR_EXTRA_DATA = contract.categoryToArbitratorExtraData(BigInt.fromI32(event.params.category));
   claim.arbitrator = ARBITRATOR_CONTRACT_ADDRESS.toString();
   claim.arbitratorExtraData = ARBITRATOR_EXTRA_DATA;
 
@@ -136,6 +123,17 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
 }
 
 export function handleChallenge(event: Challenge): void {
+  const contract = ProveMeWrong.bind(event.address);
+  const arbitratorAddress = contract.ARBITRATOR();
+
+  const arbitrator = KlerosLiquid.bind(arbitratorAddress);
+  const courtID = arbitrator.disputes(event.params.disputeID).getSubcourtID(); // TODO: OBTAIN SUBCOURTID FROM ARBITRATOR_EXTRA_DATA
+
+  const courtEntity = new CourtEntity(courtID.toString());
+
+  courtEntity.timesPerPeriod = arbitrator.getSubcourt(courtID).getTimesPerPeriod();
+  courtEntity.hiddenVotes = arbitrator.courts(courtID).getHiddenVotes();
+
   let claim = getClaimEntityInstance(event.params.claimAddress);
 
   claim.status = "Challenged";
@@ -144,10 +142,55 @@ export function handleChallenge(event: Challenge): void {
 
   getPopulatedEventEntity(event, "Challenge", claim.id).save();
 
-  let dispute = new DisputeEntity(event.params.disputeID.toString()) as DisputeEntity;
+  const disputeID = event.params.disputeID.toString();
+  let disputeEntity = DisputeEntity.load(disputeID);
+  if (!disputeEntity) {
+    disputeEntity = new DisputeEntity(disputeID);
+  }
 
-  dispute.claim = claim.id;
-  dispute.save();
+  disputeEntity.period = getPeriodName(0);
+  disputeEntity.lastPeriodChange = event.block.timestamp;
+  disputeEntity.court = courtEntity.id;
+  disputeEntity.claim = claim.id;
+
+  courtEntity.save();
+  disputeEntity.save();
+}
+
+export function handleDispute(event: Dispute): void {
+  /* const contract = KlerosLiquid.bind(event.params._arbitrator);
+  const disputeID = event.params._disputeID;
+
+  let disputeEntity = DisputeEntity.load(disputeID.toString());
+  if (!disputeEntity) {
+    disputeEntity = new DisputeEntity(disputeID.toString());
+  }
+  const dispute = contract.disputes(disputeID);
+
+  const courtID = dispute.getSubcourtID();
+  let courtEntity = CourtEntity.load(courtID.toString());
+  if (!courtEntity) {
+    courtEntity = new CourtEntity(courtID.toString());
+  }
+
+  courtEntity.timesPerPeriod = contract.getSubcourt(courtID).getTimesPerPeriod();
+  courtEntity.hiddenVotes = contract.courts(courtID).getHiddenVotes();
+
+   NOTE:
+   *   Currently `disputes` mapping in the PMW contract has private visibility modifier.
+   *   Instead of setting claim field on dispute entity to an invalid value,
+   *   the following solution approach is to be considered, in case `dispute` mapping is set as public:
+   *
+   *     const PMW = ProveMeWrong.bind(event.address);
+   *     const disputeDataStorage = PMW.disputes(event.params._disputeID);
+   *     let claim = getClaimEntityInstance(disputeDataStorage.claimStorageAddress);
+   *     disputeEntity.claim = claim.id;
+   *
+  disputeEntity.court = courtID.toString();
+  disputeEntity.claim = disputeEntity.claim ? disputeEntity.claim : TO_BE_SET_LATER;
+
+  courtEntity.save();
+  disputeEntity.save(); */
 }
 
 export function handleDebunked(event: Debunked): void {
@@ -197,6 +240,7 @@ export function handleClaimWithdrawal(event: ClaimWithdrawn): void {
 
   getPopulatedEventEntity(event, "ClaimWithdrawal", claim.id, claim.lastCalculatedScore.toString()).save();
 }
+
 export function handleEvidence(event: Evidence): void {
   let evidenceEntity = new EvidenceEntity(event.params._evidenceGroupID.toString());
 
@@ -256,16 +300,6 @@ export function handleWithdrawal(event: Withdrawal): void {
   contributionEntity.save();
 }
 
-export function handleDispute(event: Dispute): void {
-  // const disputeEntity = new DisputeEntity(event.params._disputeID.toString());
-  // disputeEntity.save();
-}
-
-export function handleNewPhase(event: NewPhase): void {
-  // you can safely delete this comment
-}
-
-
 export function handleRuling(event: Ruling): void {
   const disputeEntity = DisputeEntity.load(event.params._disputeID.toString());
 
@@ -277,7 +311,6 @@ export function handleRuling(event: Ruling): void {
   let claim = getClaimEntityInstance(BigInt.fromString(disputeEntity.claim.split("-")[0]));
 
   disputeEntity.ruled = true;
-  disputeEntity.ruling = event.params._ruling;
   disputeEntity.save();
 
   if (event.params._ruling.equals(BigInt.fromI32(2))) {
@@ -305,3 +338,44 @@ export function handleRulingFunded(event: RulingFunded): void {
 
   crowdfundingStatus.save();
 }
+
+export function handleNewPeriod(event: NewPeriod): void {
+  let dispute = DisputeEntity.load(event.params._disputeID.toString());
+  if (!dispute) return;
+
+  dispute.ruling = KlerosLiquid.bind(event.address).currentRuling(event.params._disputeID);
+  dispute.period = getPeriodName(event.params._period);
+  dispute.lastPeriodChange = event.block.timestamp;
+
+  dispute.save();
+}
+
+export function handlePolicyUpdate(event: PolicyUpdate): void {
+  let court = CourtEntity.load(event.params._subcourtID.toString());
+  if (!court) {
+    court = new CourtEntity(event.params._subcourtID.toString());
+  }
+  court.policy = event.params._policy;
+  court.hiddenVotes = false;
+  court.timesPerPeriod = [BigInt.fromI32(0)];
+  court.save();
+}
+
+/* export function handlePolicyUpdate(event: PolicyUpdate): void {
+  const ADDRESS = "0x1128eD55ab2d796fa92D2F8E1f336d745354a77A"; // TODO This is duplicated, try to obtain from subgraph.yaml.
+
+  let arbitratorEntity = Arbitrator.load(ADDRESS);
+  if (!arbitratorEntity) arbitratorEntity = new Arbitrator(ADDRESS);
+
+  const arbitrator = KlerosLiquid.bind(Address.fromBytes(Address.fromHexString(ADDRESS)));
+
+  const timesPerPeriod = arbitrator.getSubcourt(event.params._subcourtID).getTimesPerPeriod();
+
+  (arbitratorEntity.policies = arbitratorEntity.policies || new Array<String>())[event.params._subcourtID.toI32()] = event.params._policy;
+  (arbitratorEntity.evidencePeriods = arbitratorEntity.evidencePeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[0].toI32();
+  (arbitratorEntity.commitPeriods = arbitratorEntity.commitPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[1].toI32();
+  (arbitratorEntity.votingPeriods = arbitratorEntity.votingPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[2].toI32();
+  (arbitratorEntity.appealPeriods = arbitratorEntity.appealPeriods || new Array<i32>())[event.params._subcourtID.toI32()] = timesPerPeriod[3].toI32();
+
+  arbitratorEntity.save();
+} */

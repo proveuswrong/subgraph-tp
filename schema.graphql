@@ -40,6 +40,16 @@ type DisputeEntity @entity {
   ruled: Boolean
   ruling: BigInt
   claim: Claim!
+  period: Period
+  lastPeriodChange: BigInt
+  court: CourtEntity!
+}
+
+type CourtEntity @entity {
+  id: ID! # CourtID
+  policy: String
+  hiddenVotes: Boolean!
+  timesPerPeriod: [BigInt!]!
 }
 
 type EventEntity @entity {
@@ -78,4 +88,12 @@ enum Status {
   TimelockStarted
   Challenged
   Live
+}
+
+enum Period {
+  evidence
+  commit
+  vote
+  appeal
+  execution
 }
