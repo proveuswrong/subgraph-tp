@@ -96,7 +96,7 @@ export function handleNewClaim(event: NewClaim): void {
 
   let contract = ProveMeWrong.bind(event.address);
   const ARBITRATOR_CONTRACT_ADDRESS = contract.ARBITRATOR();
-  const ARBITRATOR_EXTRA_DATA = contract.categoryToArbitratorExtraData(BigInt.fromI32(0));
+  const ARBITRATOR_EXTRA_DATA = contract.categoryToArbitratorExtraData(BigInt.fromI32(event.params.category));
   claim.arbitrator = ARBITRATOR_CONTRACT_ADDRESS.toString();
   claim.arbitratorExtraData = ARBITRATOR_EXTRA_DATA;
 
@@ -127,7 +127,7 @@ export function handleChallenge(event: Challenge): void {
   const arbitratorAddress = contract.ARBITRATOR();
 
   const arbitrator = KlerosLiquid.bind(arbitratorAddress);
-  const courtID = arbitrator.disputes(event.params.disputeID).getSubcourtID();
+  const courtID = arbitrator.disputes(event.params.disputeID).getSubcourtID(); // WE KNOW ARBITRATOR EXTRA DATA
 
   const courtEntity = new CourtEntity(courtID.toString());
 
