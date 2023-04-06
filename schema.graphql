@@ -1,7 +1,7 @@
-type Claim @entity {
+type Article @entity {
   id: ID! # Storage address + blocknumber
-  claimID: String! # Actual IPFS content id of the claim.
-  owner: Bytes! # The owner of the claim
+  articleID: String! # Actual IPFS content id of the article.
+  owner: Bytes! # The owner of the article
   category: Int!
   bounty: BigInt! # uint256
   status: Status
@@ -11,45 +11,76 @@ type Claim @entity {
   createdAtBlock: BigInt!
   createdAtTimestamp: BigInt!
   lastBalanceUpdate: BigInt!
-  disputes: [DisputeEntity!] @derivedFrom(field: "claim")
-  events: [EventEntity!] @derivedFrom(field: "claim")
-  arbitrator: Arbitrator
+  disputes: [DisputeEntity!] @derivedFrom(field: "article")
+  events: [EventEntity!] @derivedFrom(field: "article")
+  arbitrator: ArbitratorEntity!
   arbitratorExtraData: Bytes
 }
 
-type ClaimStorage @entity {
-  id: ID! # Claim storage address
-  claimEntityID: String! # primary key of Claim entity
+type ArticleStorage @entity {
+  id: ID! # article storage address
+  articleEntityID: String! # primary key of Article entity
 }
 
-type EvidenceEntity @entity {
-  id: ID! # Evidence group id
-  uri: String!
-  sender: Bytes!
-  blockNumber: BigInt!
-}
+
 
 type ContributionEntity @entity {
   id: ID! # DisputeID-round-contributor-ruling
+  #contributor: User! @key
   amount: BigInt!
-  withdrew: Boolean!
 }
+
+#type User @entity {
+#  id: ID! # address
+#  contributions: [ContributionEntity!]! 
+#}
+
+#extend type User @key(fields: "id") {
+#  id: ID! @external
+#}
+#
+#extend type RoundEntity @key(fields: "id") {
+#  id: ID! @external
+#}
 
 type DisputeEntity @entity {
   id: ID! # DisputeID
   ruled: Boolean
   ruling: BigInt
-  claim: Claim!
+  article: Article!
   period: Period
   lastPeriodChange: BigInt
   court: CourtEntity!
+  rounds: [RoundEntity!]! @derivedFrom(field: "dispute")
+  #currentRoundIndex: BigInt!
+  #totalWithdrawableAmount: [BigInt!]! @resolver(name: "calculateTotalContributions")
+  #withdrew: [Boolean!]!
+}
+
+type RoundEntity @entity {
+  id: ID! # DisputeID-RoundID
+  dispute: DisputeEntity!
+  jurySize: BigInt!
+  raisedSoFar: [BigInt!]! # indexed By Ruling
+  appealDeadline: [BigInt!]! # by ruling
+  #totalToBeRaised: [BigInt!]!
+  hasPaid: [Boolean!]!
 }
 
 type CourtEntity @entity {
   id: ID! # CourtID
-  policy: String
+  policyURI: String
   hiddenVotes: Boolean!
   timesPerPeriod: [BigInt!]!
+}
+
+type ArbitratorEntity @entity {
+  id: ID! # Arbitrator address
+  phase: Phase!
+  lastPhaseChange: BigInt!
+  lastDelayedSetStake: BigInt!
+  nextDelayedSetStake: BigInt!
+  minStakingTime: BigInt!
 }
 
 type EventEntity @entity {
@@ -58,7 +89,7 @@ type EventEntity @entity {
   details: String # Any extra detail about an event
   timestamp: BigInt!
   from: Bytes!
-  claim: Claim!
+  article: Article!
 }
 
 type MetaEvidenceEntity @entity {
@@ -69,15 +100,6 @@ type MetaEvidenceEntity @entity {
 type CrowdfundingStatus @entity {
   id: ID! # disputeID-round-ruling
   fullyFunded: Boolean!
-}
-
-type Arbitrator @entity {
-  id: ID! # arbitrator contract id
-  policies: [String!]!
-  evidencePeriods: [Int!]!
-  commitPeriods: [Int!]!
-  votingPeriods: [Int!]!
-  appealPeriods: [Int!]!
 }
 
 enum Status {
@@ -96,4 +118,10 @@ enum Period {
   vote
   appeal
   execution
+}
+
+enum Phase {
+  staking
+  generating
+  drawing
 }
