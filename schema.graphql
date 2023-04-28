@@ -22,26 +22,18 @@ type ArticleStorage @entity {
   articleEntityID: String! # primary key of Article entity
 }
 
-
-
 type ContributionEntity @entity {
   id: ID! # DisputeID-round-contributor-ruling
-  #contributor: User! @key
   amount: BigInt!
+  contributor: User!
 }
 
-#type User @entity {
-#  id: ID! # address
-#  contributions: [ContributionEntity!]! 
-#}
-
-#extend type User @key(fields: "id") {
-#  id: ID! @external
-#}
-#
-#extend type RoundEntity @key(fields: "id") {
-#  id: ID! @external
-#}
+type User @entity {
+  id: ID!
+  contributions: [ContributionEntity!]! @derivedFrom(field: "contributor")
+  totalWithdrawableAmount: BigInt!
+  withdrew: Boolean!
+}
 
 type DisputeEntity @entity {
   id: ID! # DisputeID
@@ -52,18 +44,16 @@ type DisputeEntity @entity {
   lastPeriodChange: BigInt
   court: CourtEntity!
   rounds: [RoundEntity!]! @derivedFrom(field: "dispute")
-  #currentRoundIndex: BigInt!
-  #totalWithdrawableAmount: [BigInt!]! @resolver(name: "calculateTotalContributions")
-  #withdrew: [Boolean!]!
 }
 
 type RoundEntity @entity {
   id: ID! # DisputeID-RoundID
   dispute: DisputeEntity!
   jurySize: BigInt!
+  votesPerChoice: [BigInt!]!
   raisedSoFar: [BigInt!]! # indexed By Ruling
-  appealDeadline: [BigInt!]! # by ruling
-  #totalToBeRaised: [BigInt!]!
+  appealDeadline: [BigInt!]! # indexed by ruling
+  totalToBeRaised: [BigInt!]! # indexed by ruling
   hasPaid: [Boolean!]!
 }
 

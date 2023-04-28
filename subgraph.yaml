@@ -59,7 +59,7 @@ dataSources:
           handler: handleWithdrawal
         - event: ArticleWithdrawn(uint256)
           handler: handleArticleWithdrawal
-      file: ./src/mapping.ts
+      file: ./src/TruthPost.ts
   - kind: ethereum
     name: PolicyRegistry
     network: goerli
@@ -79,7 +79,7 @@ dataSources:
       eventHandlers:
         - event: PolicyUpdate(indexed uint256,string)
           handler: handlePolicyUpdate
-      file: ./src/mapping.ts
+      file: ./src/PolicyRegistry.ts
   - kind: ethereum
     name: KlerosLiquid
     network: goerli
@@ -97,6 +97,8 @@ dataSources:
       abis:
         - name: KlerosLiquid
           file: ./abis/KlerosLiquid.json
+        - name: TruthPost
+          file: ./abis/TruthPost.json
       eventHandlers:
         - event: NewPeriod(indexed uint256,uint8)
           handler: handleNewPeriod
@@ -109,4 +111,6 @@ dataSources:
       callHandlers:
         - function: executeDelayedSetStakes(uint256)
           handler: handleExecuteDelayedSetStakes
-      file: ./src/mapping.ts
+        - function: castVote(uint256,uint256[],uint256,uint256)
+          handler: handleCastVote
+      file: ./src/KlerosLiquid.ts
