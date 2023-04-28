@@ -159,6 +159,7 @@ export function handleChallenge(event: Challenge): void {
   disputeEntity.lastPeriodChange = event.block.timestamp;
   disputeEntity.court = courtEntity.id;
   disputeEntity.article = article.id;
+  disputeEntity.contributors = new Array<string>();
 
   const roundIndex = BigInt.fromI32(0);
   const jurySize = arbitrator.getDispute(disputeID).getVotesLengths()[roundIndex.toI32()];
@@ -236,8 +237,12 @@ export function handleContribution(event: Contribution): void {
   const rawMessage = `${event.params.ruling}-${event.params.amount}-${event.params.contributor}`;
   getPopulatedEventEntity(event, "Contribution", article.id, rawMessage).save();
 
-  disputeEntity.contributors = disputeEntity.contributors || new Array<string>();
-  disputeEntity.contributors.push(event.params.contributor.toString());
+  const contributorsArray = disputeEntity.contributors;
+  const lastIndex = disputeEntity.contributors.length;
+  contributorsArray[lastIndex] = event.params.contributor.toHexString();
+  disputeEntity.contributors = contributorsArray;
+
+  log.warning("Current contributors array length {}", [lastIndex.toString()]);
   disputeEntity.save();
 
   const lastRoundIndex = event.params.round;
@@ -272,7 +277,6 @@ export function handleContribution(event: Contribution): void {
     userEntity.withdrew = false;
     userEntity.totalWithdrawableAmount = BigInt.fromI32(0);
   }
-  userEntity.totalWithdrawableAmount = truthPost.getTotalWithdrawableAmount(disputeID, event.params.contributor, event.params.ruling);
   userEntity.save();
 }
 
@@ -308,8 +312,10 @@ export function handleWithdrawal(event: Withdrawal): void {
     ]);
     return;
   }
+
   const truthPost = TruthPost.bind(event.address);
   userEntity.totalWithdrawableAmount = truthPost.getTotalWithdrawableAmount(disputeID, event.params.contributor, event.params.ruling);
+
   if (userEntity.totalWithdrawableAmount.equals(BigInt.fromI32(0))) userEntity.withdrew = true;
   userEntity.save();
 }
@@ -326,7 +332,13 @@ export function handleRuling(event: Ruling): void {
   const contract = TruthPost.bind(event.address);
   const NUMBER_OF_RULING_OPTIONS = contract.NUMBER_OF_RULING_OPTIONS();
 
+  const contributorsSet = new Set<string>();
   for (let i = 0; i < contributors.length; i++) {
+    if (contributorsSet.has(contributors[i])) {
+      continue;
+    }
+    contributorsSet.add(contributors[i]);
+
     const user = User.load(contributors[i]);
     if (user) {
       for (let j = 0; j <= NUMBER_OF_RULING_OPTIONS.toI32(); j++) {
