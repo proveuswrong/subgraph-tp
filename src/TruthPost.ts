@@ -314,7 +314,7 @@ export function handleWithdrawal(event: Withdrawal): void {
   }
 
   const truthPost = TruthPost.bind(event.address);
-  userEntity.totalWithdrawableAmount = truthPost.getTotalWithdrawableAmount(disputeID, event.params.contributor, event.params.ruling);
+  userEntity.totalWithdrawableAmount = truthPost.getTotalWithdrawableAmount(disputeID, event.params.contributor).getSum();
 
   if (userEntity.totalWithdrawableAmount.equals(BigInt.fromI32(0))) userEntity.withdrew = true;
   userEntity.save();
@@ -330,7 +330,6 @@ export function handleRuling(event: Ruling): void {
 
   const contributors = disputeEntity.contributors;
   const contract = TruthPost.bind(event.address);
-  const NUMBER_OF_RULING_OPTIONS = contract.NUMBER_OF_RULING_OPTIONS();
 
   const contributorsSet = new Set<string>();
   for (let i = 0; i < contributors.length; i++) {
@@ -341,11 +340,9 @@ export function handleRuling(event: Ruling): void {
 
     const user = User.load(contributors[i]);
     if (user) {
-      for (let j = 0; j <= NUMBER_OF_RULING_OPTIONS.toI32(); j++) {
-        user.totalWithdrawableAmount = user.totalWithdrawableAmount.plus(
-          contract.getTotalWithdrawableAmount(disputeID, Address.fromString(contributors[i]), j)
-        );
-      }
+      user.totalWithdrawableAmount = user.totalWithdrawableAmount.plus(
+        contract.getTotalWithdrawableAmount(disputeID, Address.fromString(contributors[i])).getSum()
+      );
       user.save();
     }
   }
