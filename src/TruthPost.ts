@@ -231,15 +231,14 @@ export function handleContribution(event: Contribution): void {
 
   const disputeID = event.params.disputeId;
   let disputeEntity = DisputeEntity.load(disputeID.toString());
-  if(!disputeEntity) return;
+  if (!disputeEntity) return;
   let article = getArticleEntityInstance(BigInt.fromString(disputeEntity.article.split("-")[0]));
-  const rawMessage = `${event.params.ruling}-${event.params.amount}-${event.params.contributor}`
+  const rawMessage = `${event.params.ruling}-${event.params.amount}-${event.params.contributor}`;
   getPopulatedEventEntity(event, "Contribution", article.id, rawMessage).save();
 
   disputeEntity.contributors = disputeEntity.contributors || new Array<string>();
   disputeEntity.contributors.push(event.params.contributor.toString());
   disputeEntity.save();
-
 
   const lastRoundIndex = event.params.round;
   const roundID = `${disputeID.toString()}-${lastRoundIndex.toString()}`;
@@ -318,10 +317,25 @@ export function handleWithdrawal(event: Withdrawal): void {
 export function handleRuling(event: Ruling): void {
   const disputeID = event.params._disputeID;
   const disputeEntity = DisputeEntity.load(disputeID.toString());
-
   if (!disputeEntity) {
     log.error("There is no dispute with id {}. However, this is impossible. There must be a bug within the subgraph.", [event.params._disputeID.toString()]);
     return;
+  }
+
+  const contributors = disputeEntity.contributors;
+  const contract = TruthPost.bind(event.address);
+  const NUMBER_OF_RULING_OPTIONS = contract.NUMBER_OF_RULING_OPTIONS();
+
+  for (let i = 0; i < contributors.length; i++) {
+    const user = User.load(contributors[i]);
+    if (user) {
+      for (let j = 0; j <= NUMBER_OF_RULING_OPTIONS.toI32(); j++) {
+        user.totalWithdrawableAmount = user.totalWithdrawableAmount.plus(
+          contract.getTotalWithdrawableAmount(disputeID, Address.fromString(contributors[i]), j)
+        );
+      }
+      user.save();
+    }
   }
 
   let article = getArticleEntityInstance(BigInt.fromString(disputeEntity.article.split("-")[0]));
