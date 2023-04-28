@@ -227,11 +227,19 @@ export function handleEvidence(event: Evidence): void {
 }
 
 export function handleContribution(event: Contribution): void {
-  /* let article = getArticleEntityInstance(event.params.disputeId);
-
-  getPopulatedEventEntity(event, "ClaimWithdrawal", article.id, event.transaction.value.toString()).save(); */
+  // let x: string[] = [];
 
   const disputeID = event.params.disputeId;
+  let disputeEntity = DisputeEntity.load(disputeID.toString());
+  if(!disputeEntity) return;
+  let article = getArticleEntityInstance(BigInt.fromString(disputeEntity.article.split("-")[0]));
+  const rawMessage = `${event.params.ruling}-${event.params.amount}-${event.params.contributor}`
+  getPopulatedEventEntity(event, "Contribution", article.id, rawMessage).save();
+
+  disputeEntity.contributors = disputeEntity.contributors || new Array<string>();
+  disputeEntity.contributors.push(event.params.contributor.toString());
+  disputeEntity.save();
+
 
   const lastRoundIndex = event.params.round;
   const roundID = `${disputeID.toString()}-${lastRoundIndex.toString()}`;
