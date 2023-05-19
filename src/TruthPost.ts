@@ -234,7 +234,7 @@ export function handleContribution(event: Contribution): void {
   let disputeEntity = DisputeEntity.load(disputeID.toString());
   if (!disputeEntity) return;
   let article = getArticleEntityInstance(BigInt.fromString(disputeEntity.article.split("-")[0]));
-  const rawMessage = `${event.params.ruling}-${event.params.amount}-${event.params.contributor}`;
+  const rawMessage = `${event.params.ruling}-${event.params.amount}-${event.params.contributor.toHexString()}`;
   getPopulatedEventEntity(event, "Contribution", article.id, rawMessage).save();
 
   const contributorsArray = disputeEntity.contributors;
@@ -337,12 +337,10 @@ export function handleRuling(event: Ruling): void {
       continue;
     }
     contributorsSet.add(contributors[i]);
-
     const user = User.load(contributors[i]);
+
     if (user) {
-      user.totalWithdrawableAmount = user.totalWithdrawableAmount.plus(
-        contract.getTotalWithdrawableAmount(disputeID, Address.fromString(contributors[i])).getSum()
-      );
+      user.totalWithdrawableAmount = user.totalWithdrawableAmount.plus(contract.getTotalWithdrawableAmount(disputeID, Address.fromString(user.id)).getSum());
       user.save();
     }
   }
