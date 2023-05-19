@@ -1,6 +1,7 @@
 import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { RoundEntity } from "../../generated/schema";
 import { TruthPost } from "../../generated/TruthPost/TruthPost";
+import { dataSource } from "@graphprotocol/graph-ts";
 
 const NUMBER_OF_RULING_OPTIONS = 2;
 enum RulingOptions {
@@ -25,8 +26,6 @@ export function createRound(_disputeID: BigInt, _roundIndex: string, _jurySize: 
   roundEntity.hasPaid = new Array<boolean>(rulingOptionsLength).fill(false);
 
   const contract = TruthPost.bind(_arbitrableAddress);
-  const currentRuling = contract.getLastRoundWinner(_disputeID);
-
   const basicCost = contract.appealFee(_disputeID);
 
   const WINNER_MULTIPLIER = contract.WINNER_STAKE_MULTIPLIER();
@@ -37,16 +36,6 @@ export function createRound(_disputeID: BigInt, _roundIndex: string, _jurySize: 
   totalCost[RulingOptions.Debunked] = basicCost.plus(basicCost.plus(WINNER_MULTIPLIER).div(MULTIPLIER_DENOMINATOR));
   totalCost[RulingOptions.ChallengeFailed] = basicCost.plus(basicCost.plus(LOSER_MULTIPLIER).div(MULTIPLIER_DENOMINATOR));
   roundEntity.totalToBeRaised = totalCost;
-
-  let appealDeadlineArray = new Array<BigInt>(rulingOptionsLength).fill(ZERO);
-  if (currentRuling.toI32() !== RulingOptions.Tied) {
-    const loserAppealPeriod = contract.getAppealPeriod(_disputeID, RulingOptions.ChallengeFailed);
-    const winnerAppealPeriod = contract.getAppealPeriod(_disputeID, RulingOptions.Debunked);
-    appealDeadlineArray[RulingOptions.ChallengeFailed] = loserAppealPeriod.value0.plus(loserAppealPeriod.value1);
-    appealDeadlineArray[RulingOptions.Debunked] = winnerAppealPeriod.value0.plus(winnerAppealPeriod.value1);
-
-    roundEntity.appealDeadline = appealDeadlineArray;
-  }
 
   roundEntity.save();
 }
@@ -62,4 +51,25 @@ export function getLastRoundIndex(disputeID: BigInt): BigInt {
     roundID = disputeID.toString() + "-" + lastRoundIndex.toString();
   }
   return lastRoundIndex.minus(ONE);
+}
+
+export function updateRoundAppealDeadline(_disputeID: BigInt, _arbitrable: Address): void {
+  const lastRoundIndex = getLastRoundIndex(_disputeID);
+
+  const roundEntity = RoundEntity.load(`${_disputeID}-${lastRoundIndex}`);
+  if (!roundEntity) return;
+
+  const contract = TruthPost.bind(_arbitrable);
+  const rulingOptionsLength = contract
+    .NUMBER_OF_RULING_OPTIONS()
+    .plus(ONE)
+    .toI32();
+
+  let appealDeadlineArray = new Array<BigInt>(rulingOptionsLength).fill(ZERO);
+
+  appealDeadlineArray[RulingOptions.Tied] = contract.getAppealPeriod(_disputeID, RulingOptions.Tied).value1;
+  appealDeadlineArray[RulingOptions.ChallengeFailed] = contract.getAppealPeriod(_disputeID, RulingOptions.ChallengeFailed).value1;
+  appealDeadlineArray[RulingOptions.Debunked] = contract.getAppealPeriod(_disputeID, RulingOptions.Debunked).value1;
+  roundEntity.appealDeadline = appealDeadlineArray;
+  roundEntity.save();
 }

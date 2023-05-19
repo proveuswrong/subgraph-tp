@@ -2,8 +2,11 @@ import { BigInt, log } from "@graphprotocol/graph-ts";
 import { AppealDecision, CastVoteCall, ExecuteDelayedSetStakesCall, KlerosLiquid, NewPeriod, NewPhase, StakeSet } from "../generated/KlerosLiquid/KlerosLiquid";
 import { ArbitratorEntity, DisputeEntity, RoundEntity } from "../generated/schema";
 import { TruthPost } from "../generated/TruthPost/TruthPost";
-import { createRound, getLastRoundIndex } from "./entities/Round";
+import { createRound, getLastRoundIndex, updateRoundAppealDeadline } from "./entities/Round";
 import { getPeriodName, getPhaseName } from "./utils";
+
+const ZERO = BigInt.fromI32(0);
+const ONE = BigInt.fromI32(1);
 
 export function handleCastVote(call: CastVoteCall): void {
   const disputeID = call.inputs._disputeID;
@@ -53,13 +56,19 @@ export function handleAppealDecision(event: AppealDecision): void {
 }
 
 export function handleNewPeriod(event: NewPeriod): void {
-  let dispute = DisputeEntity.load(event.params._disputeID.toString());
+  const disputeID = event.params._disputeID;
+  let dispute = DisputeEntity.load(disputeID.toString());
   if (!dispute) return;
 
-  dispute.ruling = KlerosLiquid.bind(event.address).currentRuling(event.params._disputeID);
+  const klerosLiquid = KlerosLiquid.bind(event.address);
+  dispute.ruling = klerosLiquid.currentRuling(disputeID);
   dispute.period = getPeriodName(event.params._period);
   dispute.lastPeriodChange = event.block.timestamp;
 
+  if (dispute.period === "appeal") {
+    const aribtrated = klerosLiquid.disputes(disputeID).getArbitrated();
+    updateRoundAppealDeadline(disputeID, aribtrated);
+  }
   dispute.save();
 }
 
