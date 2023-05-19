@@ -6,9 +6,9 @@ dataSources:
     name: TruthPost
     network: goerli
     source:
-      address: "0x4d4c347f102fe8c01c94d003b9e9a03f5fe67d67"
+      address: "0xA5002f1f0D0f7c4477d11137f9dDc0F1cEE38Ed3"
       abi: TruthPost
-      startBlock: 8907143
+      startBlock: 8922769
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
