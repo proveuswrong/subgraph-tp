@@ -862,7 +862,7 @@
       },
       {
         "internalType": "uint256[][]",
-        "name": "positions",
+        "name": "amounts",
         "type": "uint256[][]"
       }
     ],
