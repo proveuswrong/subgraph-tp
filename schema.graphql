@@ -31,8 +31,14 @@ type ContributionEntity @entity {
 type User @entity {
   id: ID!
   contributions: [ContributionEntity!]! @derivedFrom(field: "contributor")
+  rewards: [RewardEntity!] @derivedFrom(field: "beneficiary")
+}
+
+type RewardEntity @entity {
+  id: ID! # DisputeID-userID
   totalWithdrawableAmount: BigInt!
   withdrew: Boolean!
+  beneficiary: User!
 }
 
 type DisputeEntity @entity {
