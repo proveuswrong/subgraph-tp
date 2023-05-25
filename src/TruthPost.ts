@@ -27,7 +27,8 @@ import {
   CourtEntity,
   RoundEntity,
   ArbitratorEntity,
-  User
+  User,
+  RewardEntity
 } from "../generated/schema";
 import { createRound } from "./entities/Round";
 import { getPeriodName, getPhaseName } from "./utils";
@@ -233,6 +234,7 @@ export function handleContribution(event: Contribution): void {
   const disputeID = event.params.disputeId;
   let disputeEntity = DisputeEntity.load(disputeID.toString());
   if (!disputeEntity) return;
+
   let article = getArticleEntityInstance(BigInt.fromString(disputeEntity.article.split("-")[0]));
   const rawMessage = `${event.params.ruling}-${event.params.amount}-${event.params.contributor.toHexString()}`;
   getPopulatedEventEntity(event, "Contribution", article.id, rawMessage).save();
@@ -274,10 +276,18 @@ export function handleContribution(event: Contribution): void {
   if (!userEntity) {
     userEntity = new User(userID);
     userEntity.id = event.params.contributor.toHexString();
-    userEntity.withdrew = false;
-    userEntity.totalWithdrawableAmount = BigInt.fromI32(0);
   }
   userEntity.save();
+
+  const rewardID = `${disputeID}-${event.params.contributor.toHexString()}`;
+  let rewardEntity = RewardEntity.load(rewardID);
+  if (!rewardEntity) {
+    rewardEntity = new RewardEntity(rewardID);
+    rewardEntity.totalWithdrawableAmount = BigInt.fromI32(0);
+    rewardEntity.withdrew = false;
+    rewardEntity.beneficiary = event.params.contributor.toHexString();
+  }
+  rewardEntity.save();
 }
 
 export function handleMetaEvidence(event: MetaEvidence): void {
@@ -305,19 +315,15 @@ export function handleWithdrawal(event: Withdrawal): void {
   contributionEntity.amount = BigInt.fromI32(0);
   contributionEntity.save();
 
-  const userEntity = User.load(event.params.contributor.toHexString());
-  if (!userEntity) {
-    log.error("There is no User entity with id {}. However, this is impossible. There must be a bug within the subgraph.", [
-      event.params.contributor.toHexString()
-    ]);
-    return;
-  }
-
   const truthPost = TruthPost.bind(event.address);
-  userEntity.totalWithdrawableAmount = truthPost.getTotalWithdrawableAmount(disputeID, event.params.contributor).getSum();
 
-  if (userEntity.totalWithdrawableAmount.equals(BigInt.fromI32(0))) userEntity.withdrew = true;
-  userEntity.save();
+  const rewardID = `${disputeID}-${event.params.contributor.toHexString()}`;
+  const rewardEntity = RewardEntity.load(rewardID);
+  if (!rewardEntity) return;
+
+  rewardEntity.totalWithdrawableAmount = truthPost.getTotalWithdrawableAmount(disputeID, event.params.contributor).getSum();
+  if (rewardEntity.totalWithdrawableAmount.equals(BigInt.fromI32(0))) rewardEntity.withdrew = true;
+  rewardEntity.save();
 }
 
 export function handleRuling(event: Ruling): void {
@@ -329,7 +335,7 @@ export function handleRuling(event: Ruling): void {
   }
 
   const contributors = disputeEntity.contributors;
-  const contract = TruthPost.bind(event.address);
+  const truthPost = TruthPost.bind(event.address);
 
   const contributorsSet = new Set<string>();
   for (let i = 0; i < contributors.length; i++) {
@@ -337,11 +343,13 @@ export function handleRuling(event: Ruling): void {
       continue;
     }
     contributorsSet.add(contributors[i]);
-    const user = User.load(contributors[i]);
+    const rewardEntity = RewardEntity.load(`${disputeID}-${contributors[i]}`);
 
-    if (user) {
-      user.totalWithdrawableAmount = user.totalWithdrawableAmount.plus(contract.getTotalWithdrawableAmount(disputeID, Address.fromString(user.id)).getSum());
-      user.save();
+    if (rewardEntity) {
+      rewardEntity.totalWithdrawableAmount = rewardEntity.totalWithdrawableAmount.plus(
+        truthPost.getTotalWithdrawableAmount(disputeID, Address.fromString(contributors[i])).getSum()
+      );
+      rewardEntity.save();
     }
   }
 
