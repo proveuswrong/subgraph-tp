@@ -1,0 +1,41 @@
+name: Deploy Subgraph - Live
+
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: The network to deploy the subgraph to
+        required: true
+        default: "goerli"
+        type: choice
+        options:
+          - mainnet
+          - goerli
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build subgraph
+        run: |
+          export NETWORK_NAME=${{ inputs.network }} 
+          yarn codegen
+          yarn build
+
+      - name: Authenticate with TheGraph
+        run: yarn graph auth https://api.thegraph.com/deploy/ ${{ secrets.SUBGRAPH_AUTH_TOKEN }}
+
+      - name: Deploy subgraph
+        run: yarn deploy

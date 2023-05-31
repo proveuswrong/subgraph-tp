@@ -3,11 +3,11 @@
   "license": "UNLICENSED",
   "scripts": {
     "codegen": "graph codegen",
-    "build": "graph build",
+    "build": "graph build --network $NETWORK_NAME",
     "deploy": "graph deploy --product hosted-service proveuswrong/thetruthpost",
-    "create-local": "graph create --node http://localhost:8020/ prove-me-wrong",
-    "remove-local": "graph remove --node http://localhost:8020/ prove-me-wrong",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 prove-me-wrong"
+    "create-local": "graph create --node http://localhost:8020/ $SUBGRAPH_NAME",
+    "remove-local": "graph remove --node http://localhost:8020/ $SUBGRAPH_NAME",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 $SUBGRAPH_NAME"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "^0.38.0",

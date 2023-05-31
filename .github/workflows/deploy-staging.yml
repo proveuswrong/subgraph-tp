@@ -1,0 +1,81 @@
+name: Deploy Subgraph - Local
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      SUBGRAPH_NAME: thetruthpost-${{ github.event.pull_request.number }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build subgraph
+        run: |
+          export NETWORK_NAME=goerli
+          yarn codegen
+          yarn build
+
+      - name: Create and start Docker containers
+        run: |
+          export ETHEREUM_NODE_PROVIDER=${{ secrets.ETHEREUM_NODE_PROVIDER }}
+          docker-compose up -d
+
+      - name: Wait for containers to start
+        run: sleep 10
+
+        # run: |
+        #  while [[ "$(docker-compose ps -q | xargs docker inspect --format '{{.State.Status}}')" != "running" ]]; do sleep 2; done
+      - name: Download and install ngrok
+        run: |
+          curl -s https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip -o ngrok.zip
+          unzip ngrok.zip
+          sudo mv ngrok /usr/local/bin
+
+      - name: Start ngrok tunnel for Graph Node
+        run: |
+          ngrok authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+          ngrok http 8000 > /dev/null &
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Get ngrok public URL
+        run: |
+          sleep 10
+          export NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+          echo "NGROK_URL=$NGROK_URL" >> $GITHUB_ENV
+
+      - name: Create and deploy a local Subgraph
+        run: yarn create-local
+
+      - name: Deploy a local Subgraph
+        run: yarn deploy-local --version-label 0.0.1
+
+      - name: Post subgraph URL to pull request
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            A new subgraph deployment has been created for this pull request.
+            You can access it at: https://${{env.NGROK_URL}}/subgraphs/name/${{env.SUBGRAPH_NAME}}/graphql
+
+      - name: Wait for 10 mins before completing the workflow
+        run: sleep 600
+
+      - name: Stop Docker containers
+        if: github.event.pull_request.merged == true || github.event.pull_request.closed == true
+        run: docker-compose down
