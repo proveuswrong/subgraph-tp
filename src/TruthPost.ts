@@ -1,4 +1,5 @@
 import { ethereum, BigInt, log, Address } from "@graphprotocol/graph-ts";
+import { dataSource } from "@graphprotocol/graph-ts";
 import { KlerosLiquid } from "../generated/KlerosLiquid/KlerosLiquid";
 import {
   TruthPost,
@@ -28,7 +29,8 @@ import {
   RoundEntity,
   ArbitratorEntity,
   User,
-  RewardEntity
+  RewardEntity,
+  ArbitrableEntity
 } from "../generated/schema";
 import { createRound } from "./entities/Round";
 import { getPeriodName, getPhaseName } from "./utils";
@@ -295,6 +297,11 @@ export function handleMetaEvidence(event: MetaEvidence): void {
   metaEvidenceEntity.uri = event.params._evidence;
 
   metaEvidenceEntity.save();
+
+  const arbitrableEntity = new ArbitrableEntity(BigInt.fromI32(0).toString());
+  arbitrableEntity.address = dataSource.address();
+  arbitrableEntity.network = Address.fromHexString(dataSource.network());
+  arbitrableEntity.save();
 }
 
 export function handleWithdrawal(event: Withdrawal): void {

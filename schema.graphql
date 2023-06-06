@@ -94,6 +94,12 @@ type MetaEvidenceEntity @entity {
   uri: String!
 }
 
+type ArbitrableEntity @entity {
+  id: ID!
+  address: Bytes!
+  network: Bytes!
+}
+
 type CrowdfundingStatus @entity {
   id: ID! # disputeID-round-ruling
   fullyFunded: Boolean!
