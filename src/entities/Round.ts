@@ -1,7 +1,6 @@
 import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { RoundEntity } from "../../generated/schema";
 import { TruthPost } from "../../generated/TruthPost/TruthPost";
-import { dataSource } from "@graphprotocol/graph-ts";
 
 const NUMBER_OF_RULING_OPTIONS = 2;
 enum RulingOptions {
@@ -32,9 +31,12 @@ export function createRound(_disputeID: BigInt, _roundIndex: string, _jurySize: 
   const LOSER_MULTIPLIER = contract.LOSER_STAKE_MULTIPLIER();
   const MULTIPLIER_DENOMINATOR = contract.MULTIPLIER_DENOMINATOR();
 
-  const totalCost = new Array<BigInt>(rulingOptionsLength).fill(ZERO);
-  totalCost[RulingOptions.Debunked] = basicCost.plus(basicCost.plus(WINNER_MULTIPLIER).div(MULTIPLIER_DENOMINATOR));
-  totalCost[RulingOptions.ChallengeFailed] = basicCost.plus(basicCost.plus(LOSER_MULTIPLIER).div(MULTIPLIER_DENOMINATOR));
+  const lastRoundWinner = contract.getLastRoundWinner(_disputeID).toI32();
+  const loserTotalCost = basicCost.plus(basicCost.times(LOSER_MULTIPLIER).div(MULTIPLIER_DENOMINATOR));
+  const winnerTotalCost = basicCost.plus(basicCost.times(WINNER_MULTIPLIER).div(MULTIPLIER_DENOMINATOR));
+
+  const totalCost = new Array<BigInt>(rulingOptionsLength).fill(loserTotalCost);
+  totalCost[lastRoundWinner] = winnerTotalCost;
   roundEntity.totalToBeRaised = totalCost;
 
   roundEntity.save();
