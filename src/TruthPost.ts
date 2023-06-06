@@ -326,7 +326,7 @@ export function handleMetaEvidence(event: MetaEvidence): void {
 
   let metadataEntity = Metadata.load("0");
   if (!metadataEntity) {
-    metadataEntity = new Metadata(dataSource.address().toHexString());
+    metadataEntity = new Metadata("0");
   }
   metadataEntity.arbitrator = arbitratorEntity.id;
   metadataEntity.arbitrable = arbitrableEntity.id;
