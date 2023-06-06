@@ -1,3 +1,9 @@
+type Metadata @entity(immutable: true){
+  id: ID! # Singleton
+  arbitrator: ArbitratorEntity!
+  arbitrable: ArbitrableEntity!
+}
+
 type Article @entity {
   id: ID! # Storage address + blocknumber
   articleID: String! # Actual IPFS content id of the article.
@@ -14,7 +20,6 @@ type Article @entity {
   disputes: [DisputeEntity!] @derivedFrom(field: "article")
   events: [EventEntity!] @derivedFrom(field: "article")
   arbitrator: ArbitratorEntity!
-  arbitrable: ArbitrableEntity!
   arbitratorExtraData: Bytes
 }
 

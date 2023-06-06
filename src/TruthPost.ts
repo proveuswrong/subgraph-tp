@@ -19,6 +19,7 @@ import {
 } from "../generated/TruthPost/TruthPost";
 
 import {
+  Metadata,
   Article,
   ArticleStorage,
   EventEntity,
@@ -103,6 +104,7 @@ export function handleNewArticle(event: NewArticle): void {
     arbitratorEntity = new ArbitratorEntity(ARBITRATOR_CONTRACT_ADDRESS.toHexString());
     arbitratorEntity.network = Address.fromHexString(dataSource.network());
   }
+
 
   arbitratorEntity.minStakingTime = arbitratorContract.minStakingTime();
   arbitratorEntity.nextDelayedSetStake = arbitratorContract.nextDelayedSetStake();
@@ -299,9 +301,29 @@ export function handleMetaEvidence(event: MetaEvidence): void {
 
   metaEvidenceEntity.save();
 
-  const arbitrableEntity = new ArbitrableEntity(dataSource.address().toHexString());
-  arbitrableEntity.network = Address.fromHexString(dataSource.network());
-  arbitrableEntity.save();
+  let contract = TruthPost.bind(event.address);
+  const ARBITRATOR_CONTRACT_ADDRESS = contract.ARBITRATOR();
+
+  let arbitratorEntity = ArbitratorEntity.load(ARBITRATOR_CONTRACT_ADDRESS.toHexString());
+  if (!arbitratorEntity) {
+    arbitratorEntity = new ArbitratorEntity(ARBITRATOR_CONTRACT_ADDRESS.toHexString());
+    arbitratorEntity.network = Address.fromHexString(dataSource.network());
+    arbitratorEntity.save();
+  }
+  let arbitrableEntity = ArbitrableEntity.load(event.address.toHexString());
+  if (!arbitrableEntity) {
+    arbitrableEntity = new ArbitrableEntity(event.address.toHexString());
+    arbitrableEntity.network = Address.fromHexString(dataSource.network());
+    arbitrableEntity.save();
+  }
+
+  let metadataEntity = Metadata.load("0");
+  if (!metadataEntity) {
+    metadataEntity = new Metadata(dataSource.address().toHexString());
+    metadataEntity.arbitrator = arbitratorEntity.id;
+    metadataEntity.arbitrable = arbitrableEntity.id;
+    metadataEntity.save();
+  }
 }
 
 export function handleWithdrawal(event: Withdrawal): void {
