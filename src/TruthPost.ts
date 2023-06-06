@@ -307,8 +307,8 @@ export function handleMetaEvidence(event: MetaEvidence): void {
   let arbitratorEntity = ArbitratorEntity.load(ARBITRATOR_CONTRACT_ADDRESS.toHexString());
   if (!arbitratorEntity) {
     arbitratorEntity = new ArbitratorEntity(ARBITRATOR_CONTRACT_ADDRESS.toHexString());
-    arbitratorEntity.network = Address.fromHexString(dataSource.network());
   }
+  arbitratorEntity.network = Address.fromHexString(dataSource.network());
   const arbitratorContract = KlerosLiquid.bind(ARBITRATOR_CONTRACT_ADDRESS);
   arbitratorEntity.minStakingTime = arbitratorContract.minStakingTime();
   arbitratorEntity.nextDelayedSetStake = arbitratorContract.nextDelayedSetStake();
