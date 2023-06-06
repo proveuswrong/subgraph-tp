@@ -320,17 +320,17 @@ export function handleMetaEvidence(event: MetaEvidence): void {
   let arbitrableEntity = ArbitrableEntity.load(event.address.toHexString());
   if (!arbitrableEntity) {
     arbitrableEntity = new ArbitrableEntity(event.address.toHexString());
-    arbitrableEntity.network = Address.fromHexString(dataSource.network());
-    arbitrableEntity.save();
   }
+  arbitrableEntity.network = Address.fromHexString(dataSource.network());
+  arbitrableEntity.save();
 
   let metadataEntity = Metadata.load("0");
   if (!metadataEntity) {
     metadataEntity = new Metadata(dataSource.address().toHexString());
-    metadataEntity.arbitrator = arbitratorEntity.id;
-    metadataEntity.arbitrable = arbitrableEntity.id;
-    metadataEntity.save();
   }
+  metadataEntity.arbitrator = arbitratorEntity.id;
+  metadataEntity.arbitrable = arbitrableEntity.id;
+  metadataEntity.save();
 }
 
 export function handleWithdrawal(event: Withdrawal): void {
