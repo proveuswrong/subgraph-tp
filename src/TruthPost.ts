@@ -101,6 +101,7 @@ export function handleNewArticle(event: NewArticle): void {
   let arbitratorEntity = ArbitratorEntity.load(ARBITRATOR_CONTRACT_ADDRESS.toHexString());
   if (!arbitratorEntity) {
     arbitratorEntity = new ArbitratorEntity(ARBITRATOR_CONTRACT_ADDRESS.toHexString());
+    arbitratorEntity.network = Address.fromHexString(dataSource.network());
   }
 
   arbitratorEntity.minStakingTime = arbitratorContract.minStakingTime();
@@ -298,8 +299,7 @@ export function handleMetaEvidence(event: MetaEvidence): void {
 
   metaEvidenceEntity.save();
 
-  const arbitrableEntity = new ArbitrableEntity(BigInt.fromI32(0).toString());
-  arbitrableEntity.address = dataSource.address();
+  const arbitrableEntity = new ArbitrableEntity(dataSource.address().toHexString());
   arbitrableEntity.network = Address.fromHexString(dataSource.network());
   arbitrableEntity.save();
 }

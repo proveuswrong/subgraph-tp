@@ -14,6 +14,7 @@ type Article @entity {
   disputes: [DisputeEntity!] @derivedFrom(field: "article")
   events: [EventEntity!] @derivedFrom(field: "article")
   arbitrator: ArbitratorEntity!
+  arbitrable: ArbitrableEntity!
   arbitratorExtraData: Bytes
 }
 
@@ -73,11 +74,17 @@ type CourtEntity @entity {
 
 type ArbitratorEntity @entity {
   id: ID! # Arbitrator address
+  network: Bytes!
   phase: Phase!
   lastPhaseChange: BigInt!
   lastDelayedSetStake: BigInt!
   nextDelayedSetStake: BigInt!
   minStakingTime: BigInt!
+}
+
+type ArbitrableEntity @entity {
+  id: ID! # Contract address
+  network: Bytes!
 }
 
 type EventEntity @entity {
@@ -94,11 +101,7 @@ type MetaEvidenceEntity @entity {
   uri: String!
 }
 
-type ArbitrableEntity @entity {
-  id: ID!
-  address: Bytes!
-  network: Bytes!
-}
+
 
 type CrowdfundingStatus @entity {
   id: ID! # disputeID-round-ruling
