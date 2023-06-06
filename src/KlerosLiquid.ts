@@ -1,5 +1,14 @@
 import { BigInt, log } from "@graphprotocol/graph-ts";
-import { AppealDecision, CastVoteCall, ExecuteDelayedSetStakesCall, KlerosLiquid, NewPeriod, NewPhase, StakeSet } from "../generated/KlerosLiquid/KlerosLiquid";
+import {
+  AppealDecision,
+  AppealPossible,
+  CastVoteCall,
+  ExecuteDelayedSetStakesCall,
+  KlerosLiquid,
+  NewPeriod,
+  NewPhase,
+  StakeSet
+} from "../generated/KlerosLiquid/KlerosLiquid";
 import { ArbitratorEntity, DisputeEntity, RoundEntity } from "../generated/schema";
 import { TruthPost } from "../generated/TruthPost/TruthPost";
 import { createRound, getLastRoundIndex, updateRoundAppealDeadline } from "./entities/Round";
@@ -53,6 +62,38 @@ export function handleAppealDecision(event: AppealDecision): void {
 
   disputeEntity.period = getPeriodName(0);
   disputeEntity.save();
+}
+
+export function handleAppealPossible(event: AppealPossible): void {
+  const disputeID = event.params._disputeID;
+  const disputeEntity = DisputeEntity.load(disputeID.toString());
+  if (!disputeEntity) return;
+
+  const lastRoundIndex = getLastRoundIndex(disputeID);
+  const roundID = `${disputeID.toString()}-${lastRoundIndex}`;
+  const roundEntity = RoundEntity.load(roundID);
+  if (!roundEntity) return;
+
+  const truthPost = TruthPost.bind(event.params._arbitrable);
+  const basicCost = truthPost.appealFee(disputeID);
+
+  const WINNER_MULTIPLIER = truthPost.WINNER_STAKE_MULTIPLIER();
+  const LOSER_MULTIPLIER = truthPost.LOSER_STAKE_MULTIPLIER();
+  const MULTIPLIER_DENOMINATOR = truthPost.MULTIPLIER_DENOMINATOR();
+
+  const lastRoundWinner = truthPost.getLastRoundWinner(disputeID).toI32();
+  const loserTotalCost = basicCost.plus(basicCost.times(LOSER_MULTIPLIER).div(MULTIPLIER_DENOMINATOR));
+  const winnerTotalCost = basicCost.plus(basicCost.times(WINNER_MULTIPLIER).div(MULTIPLIER_DENOMINATOR));
+
+  const rulingOptionLength = truthPost
+    .NUMBER_OF_RULING_OPTIONS()
+    .plus(ONE)
+    .toI32();
+  const totalCost = new Array<BigInt>(rulingOptionLength).fill(loserTotalCost);
+  totalCost[lastRoundWinner] = winnerTotalCost;
+  roundEntity.totalToBeRaised = totalCost;
+
+  roundEntity.save();
 }
 
 export function handleNewPeriod(event: NewPeriod): void {

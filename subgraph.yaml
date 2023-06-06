@@ -108,6 +108,8 @@ dataSources:
           handler: handleStakeSet
         - event: AppealDecision(indexed uint256,indexed address)
           handler: handleAppealDecision
+        - event: AppealPossible(indexed uint256,indexed address)
+          handler: handleAppealPossible
       callHandlers:
         - function: executeDelayedSetStakes(uint256)
           handler: handleExecuteDelayedSetStakes
