@@ -66,7 +66,7 @@ dataSources:
     source:
       address: "0xCf1f07713d5193FaE5c1653C9f61953D048BECe4"
       abi: PolicyRegistry
-      startBlock: 17422376
+      startBlock: 10175872
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6

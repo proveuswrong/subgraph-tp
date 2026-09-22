@@ -1,4 +1,4 @@
-import { ethereum, BigInt, log, Address } from "@graphprotocol/graph-ts";
+import { ethereum, BigInt, log, Address, Bytes } from "@graphprotocol/graph-ts";
 import { dataSource } from "@graphprotocol/graph-ts";
 import { KlerosLiquid } from "../generated/KlerosLiquid/KlerosLiquid";
 import {
@@ -35,6 +35,10 @@ import {
 } from "../generated/schema";
 import { createRound } from "./entities/Round";
 import { getPeriodName, getPhaseName } from "./utils";
+
+function getNetwork(): Bytes {
+  return Bytes.fromUTF8(dataSource.network());
+}
 
 function getArticleEntityInstance(articleStorageAddress: BigInt): Article {
   let articleStorage = ArticleStorage.load(articleStorageAddress.toString());
@@ -102,7 +106,7 @@ export function handleNewArticle(event: NewArticle): void {
   let arbitratorEntity = ArbitratorEntity.load(ARBITRATOR_CONTRACT_ADDRESS.toHexString());
   if (!arbitratorEntity) {
     arbitratorEntity = new ArbitratorEntity(ARBITRATOR_CONTRACT_ADDRESS.toHexString());
-    arbitratorEntity.network = Address.fromHexString(dataSource.network());
+    arbitratorEntity.network = getNetwork();
   }
 
 
@@ -308,7 +312,7 @@ export function handleMetaEvidence(event: MetaEvidence): void {
   if (!arbitratorEntity) {
     arbitratorEntity = new ArbitratorEntity(ARBITRATOR_CONTRACT_ADDRESS.toHexString());
   }
-  arbitratorEntity.network = Address.fromHexString(dataSource.network());
+  arbitratorEntity.network = getNetwork();
   const arbitratorContract = KlerosLiquid.bind(ARBITRATOR_CONTRACT_ADDRESS);
   arbitratorEntity.minStakingTime = arbitratorContract.minStakingTime();
   arbitratorEntity.nextDelayedSetStake = arbitratorContract.nextDelayedSetStake();
@@ -321,7 +325,7 @@ export function handleMetaEvidence(event: MetaEvidence): void {
   if (!arbitrableEntity) {
     arbitrableEntity = new ArbitrableEntity(event.address.toHexString());
   }
-  arbitrableEntity.network = Address.fromHexString(dataSource.network());
+  arbitrableEntity.network = getNetwork();
   arbitrableEntity.save();
 
   let metadataEntity = Metadata.load("0");

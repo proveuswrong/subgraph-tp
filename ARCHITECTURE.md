@@ -1,42 +1,32 @@
 # Architecture
 
-One dated entry per architectural decision: what was decided, what was weighed
-against it, and what the decision costs. Implementation choices, refactors and
-dependency bumps do not belong here.
+## Indexing
 
-## 2026-09-09: index the Ethereum mainnet deployment, not Goerli
+The subgraph indexes the Ethereum mainnet contracts used by `truthpost.news`.
+`subgraph.yaml` defines the networks, contract addresses and history boundaries.
+A network change must update addresses together with the network selection;
+an address without code can silently produce an empty index.
 
-**Decision.** All three data sources (`TruthPost`, `PolicyRegistry`,
-`KlerosLiquid`) index Ethereum mainnet from block 17422376, the creation block
-of `0x87AAdE1067Ed0276ec9BEf6db8E17Abe27A6B454`. The subgraph is published to
-The Graph Studio.
+TruthPost events create article and dispute entities. KlerosLiquid events and
+calls update arbitration state for those disputes. Both sources begin at
+TruthPost's creation. PolicyRegistry starts at its earliest policy events,
+because courts already had policies before TruthPost existed. Starting that
+source at TruthPost's creation would leave existing court policies unavailable.
 
-Until now this repository described the Goerli deployment. The mainnet subgraph
-that `truthpost.news` actually queries was deployed from configuration that was
-never committed, so the repository stopped being the source of truth for what
-runs. When that Studio deployment disappeared, nothing here could rebuild it.
+Mappings persist entities in Graph Node's store, exposed through `schema.graphql`.
+Court policy updates are replayed before later challenges populate the court's
+timing and voting fields; saving those fields preserves the policy URI.
+Arbitrator and arbitrable network fields retain the schema's Bytes representation
+and contain the UTF-8 encoding of the manifest's network name.
 
-**Alternatives weighed.**
+## Deployment
 
-- *Keep indexing Goerli.* Rejected: the network was shut down in 2023, so the
-  manifest describes a chain that no longer answers.
-- *Index both networks, as parallel data sources or as two subgraphs.* Rejected:
-  there is no live testnet deployment to index, and carrying a second network
-  doubles the surface that drifts out of sync, which is the failure this entry
-  exists to correct.
-- *Redeploy the contracts on a current testnet and index that.* Rejected as a
-  different project: it would not restore the live site, which is the reason for
-  the change.
+The production target is The Graph Studio. The deployment workflow in
+`.github/workflows/deploy.yml` runs after changes reach the default branch and
+passes a Studio deploy key and a unique run version directly to the CLI.
+The key is required to publish and is scoped to the deployment step. Earlier
+dependency installation and build steps do not receive it.
 
-**Consequences accepted.**
-
-- The hosted service was sunset in June 2024, so Studio is the only publishing
-  target and a Studio deploy key is required to release. There is no anonymous
-  path to a working index.
-- Indexing from June 2023 means a full resync on every fresh deploy.
-- Goerli history is no longer available through this subgraph. Nothing depends
-  on it.
-- The Kleros addresses are now mainnet-specific. The previous Goerli addresses
-  hold no code on mainnet, so a future network change that edits only the
-  `network:` field will index nothing and report no error. Network and addresses
-  must move together.
+A fresh index reconstructs state from each source's configured history boundary.
+Restoring the website also requires the frontend's query URL to identify the
+Studio subgraph that receives the deployment.

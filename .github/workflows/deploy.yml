@@ -2,8 +2,11 @@ name: Deploy Subgraph
 
 on:
   push:
-    branch:
+    branches:
       - master
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
@@ -11,24 +14,28 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: 16
+          node-version: 22
+          package-manager-cache: false
 
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --frozen-lockfile --ignore-scripts --non-interactive
 
-      - name: subgraph codegen
+      - name: Generate subgraph types
         run: yarn codegen
 
-      - name: build subgprah
+      - name: Build subgraph
         run: yarn build
 
-      - name: authenticate subgraph
-        run: yarn graph auth https://api.thegraph.com/deploy/ ${{secrets.SUBGRAPH_AUTH_TOKEN}}
-
-      - name: deploy subgraph
-        run: yarn deploy
+      - name: Deploy subgraph
+        env:
+          SUBGRAPH_AUTH_TOKEN: ${{ secrets.SUBGRAPH_AUTH_TOKEN }}
+        run: |
+          : "${SUBGRAPH_AUTH_TOKEN:?Set SUBGRAPH_AUTH_TOKEN to a Subgraph Studio deploy key}"
+          yarn deploy --deploy-key "$SUBGRAPH_AUTH_TOKEN" --version-label "v${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
