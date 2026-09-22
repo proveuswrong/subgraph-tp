@@ -4,7 +4,7 @@ type Metadata @entity(immutable: true){
   arbitrable: ArbitrableEntity!
 }
 
-type Article @entity {
+type Article @entity(immutable: false) {
   id: ID! # Storage address + blocknumber
   articleID: String! # Actual IPFS content id of the article.
   owner: Bytes! # The owner of the article
@@ -23,31 +23,31 @@ type Article @entity {
   arbitratorExtraData: Bytes
 }
 
-type ArticleStorage @entity {
+type ArticleStorage @entity(immutable: false) {
   id: ID! # article storage address
   articleEntityID: String! # primary key of Article entity
 }
 
-type ContributionEntity @entity {
+type ContributionEntity @entity(immutable: false) {
   id: ID! # DisputeID-round-contributor-ruling
   amount: BigInt!
   contributor: User!
 }
 
-type User @entity {
+type User @entity(immutable: false) {
   id: ID!
   contributions: [ContributionEntity!]! @derivedFrom(field: "contributor")
   rewards: [RewardEntity!] @derivedFrom(field: "beneficiary")
 }
 
-type RewardEntity @entity {
+type RewardEntity @entity(immutable: false) {
   id: ID! # DisputeID-userID
   totalWithdrawableAmount: BigInt!
   withdrew: Boolean!
   beneficiary: User!
 }
 
-type DisputeEntity @entity {
+type DisputeEntity @entity(immutable: false) {
   id: ID! # DisputeID
   ruled: Boolean
   ruling: BigInt
@@ -59,7 +59,7 @@ type DisputeEntity @entity {
   contributors: [User!]!
 }
 
-type RoundEntity @entity {
+type RoundEntity @entity(immutable: false) {
   id: ID! # DisputeID-RoundID
   dispute: DisputeEntity!
   jurySize: BigInt!
@@ -70,14 +70,14 @@ type RoundEntity @entity {
   hasPaid: [Boolean!]!
 }
 
-type CourtEntity @entity {
+type CourtEntity @entity(immutable: false) {
   id: ID! # CourtID
   policyURI: String
   hiddenVotes: Boolean!
   timesPerPeriod: [BigInt!]!
 }
 
-type ArbitratorEntity @entity {
+type ArbitratorEntity @entity(immutable: false) {
   id: ID! # Arbitrator address
   network: Bytes!
   phase: Phase!
@@ -87,12 +87,12 @@ type ArbitratorEntity @entity {
   minStakingTime: BigInt!
 }
 
-type ArbitrableEntity @entity {
+type ArbitrableEntity @entity(immutable: false) {
   id: ID! # Contract address
   network: Bytes!
 }
 
-type EventEntity @entity {
+type EventEntity @entity(immutable: false) {
   id: ID! # transactionHash-logIndex
   name: String!
   details: String # Any extra detail about an event
@@ -101,14 +101,14 @@ type EventEntity @entity {
   article: Article!
 }
 
-type MetaEvidenceEntity @entity {
+type MetaEvidenceEntity @entity(immutable: false) {
   id: ID! # 0
   uri: String!
 }
 
 
 
-type CrowdfundingStatus @entity {
+type CrowdfundingStatus @entity(immutable: false) {
   id: ID! # disputeID-round-ruling
   fullyFunded: Boolean!
 }
